@@ -1,28 +1,26 @@
 # Data & Analysis
-yfinance==0.2.38
-pandas==2.2.0
-numpy==1.26.3
-scipy==1.12.0
-statsmodels==0.14.1
+yfinance
+pandas
+numpy
+scipy
+statsmodels
 
 # Visualization
-matplotlib==3.8.2
-seaborn==0.13.1
-plotly==5.18.0
+matplotlib
+seaborn
+plotly
 
 # Multi-Agent Framework (Day 4+)
-crewai==0.28.0
-langchain==0.1.9
-langchain-anthropic==0.1.6
-anthropic==0.18.1
+crewai
+langchain
 
 # Backtesting (Day 5+)
-vectorbt==0.26.1
+vectorbt
 
 # Utilities
-python-dotenv==1.0.1
-pyyaml==6.0.1
-jupyter==1.0.0
+python-dotenv
+pyyaml
+jupyter
 
 # Testing
-pytest==8.0.0
+pytest
