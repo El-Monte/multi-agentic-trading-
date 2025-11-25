@@ -7,6 +7,7 @@ import numpy as np
 from scipy import stats
 from statsmodels.tsa.stattools import adfuller, coint
 from statsmodels.regression.linear_model import OLS
+from statsmodels.tools import add_constant
 from typing import Tuple, Dict
 import warnings
 warnings.filterwarnings('ignore')
@@ -58,8 +59,14 @@ class CointegrationAnalyzer:
         Returns:
             Beta coefficient (units of stock_b per unit of stock_a)
         """
-        model = OLS(stock_a, stock_b).fit()
-        return model.params[0]
+        # Add constant to the independent variable
+        X = add_constant(stock_b)
+        
+        # Run OLS regression: stock_a = alpha + beta * stock_b
+        model = OLS(stock_a, X).fit()
+        
+        # Return beta coefficient (slope)
+        return model.params[1]  # params[0] is intercept, params[1] is slope
     
     @staticmethod
     def calculate_spread(stock_a: pd.Series, stock_b: pd.Series, hedge_ratio: float) -> pd.Series:
@@ -93,15 +100,29 @@ class CointegrationAnalyzer:
         # Align series
         spread_lag = spread_lag[spread_diff.index]
         
-        # AR(1): Δspread = λ * spread_lag + ε
-        model = OLS(spread_diff, spread_lag).fit()
-        lambda_coef = model.params[0]
+        if len(spread_lag) < 10:
+            return np.inf
         
-        if lambda_coef >= 0:
-            return np.inf  # Not mean-reverting
+        # Add constant for OLS
+        X = add_constant(spread_lag)
         
-        half_life = -np.log(2) / lambda_coef
-        return half_life
+        # AR(1): Δspread = alpha + λ * spread_lag + ε
+        try:
+            model = OLS(spread_diff, X).fit()
+            lambda_coef = model.params[1]  # params[1] is the coefficient on spread_lag
+            
+            if lambda_coef >= 0:
+                return np.inf  # Not mean-reverting
+            
+            half_life = -np.log(2) / lambda_coef
+            
+            # Sanity check
+            if half_life < 0 or half_life > 500:
+                return np.inf
+                
+            return half_life
+        except:
+            return np.inf
     
     @staticmethod
     def hurst_exponent(series: pd.Series) -> float:
@@ -116,12 +137,20 @@ class CointegrationAnalyzer:
             H = 0.5 → random walk
             H > 0.5 → trending
         """
-        lags = range(2, 100)
-        tau = [np.std(np.subtract(series[lag:].values, series[:-lag].values)) for lag in lags]
-        
-        # Linear regression of log(tau) vs log(lag)
-        poly = np.polyfit(np.log(lags), np.log(tau), 1)
-        return poly[0]
+        try:
+            lags = range(2, 100)
+            tau = [np.std(np.subtract(series[lag:].values, series[:-lag].values)) for lag in lags]
+            
+            # Remove any invalid values
+            tau = [t for t in tau if t > 0 and np.isfinite(t)]
+            if len(tau) < 10:
+                return 0.5
+            
+            # Linear regression of log(tau) vs log(lag)
+            poly = np.polyfit(np.log(lags[:len(tau)]), np.log(tau), 1)
+            return poly[0]
+        except:
+            return 0.5
     
     def analyze_pair(self, stock_a: pd.Series, stock_b: pd.Series, 
                     ticker_a: str, ticker_b: str) -> Dict:
@@ -137,44 +166,64 @@ class CointegrationAnalyzer:
         Returns:
             Dictionary with all test results
         """
-        # Correlation
-        correlation = stock_a.corr(stock_b)
-        
-        # Cointegration
-        eg_stat, eg_pvalue = self.engle_granger_test(stock_a, stock_b)
-        
-        # Hedge ratio and spread
-        hedge_ratio = self.calculate_hedge_ratio(stock_a, stock_b)
-        spread = self.calculate_spread(stock_a, stock_b, hedge_ratio)
-        
-        # Spread stationarity
-        adf_stat, adf_pvalue = self.adf_test(spread)
-        
-        # Mean reversion metrics
-        half_life_days = self.half_life(spread)
-        hurst = self.hurst_exponent(spread)
-        
-        # Spread statistics
-        spread_mean = spread.mean()
-        spread_std = spread.std()
-        
-        return {
-            'pair': f"{ticker_a}/{ticker_b}",
-            'correlation': correlation,
-            'eg_statistic': eg_stat,
-            'eg_pvalue': eg_pvalue,
-            'cointegrated': eg_pvalue < 0.05,
-            'hedge_ratio': hedge_ratio,
-            'adf_statistic': adf_stat,
-            'adf_pvalue': adf_pvalue,
-            'spread_stationary': adf_pvalue < 0.05,
-            'half_life': half_life_days,
-            'hurst': hurst,
-            'mean_reverting': hurst < 0.5,
-            'spread_mean': spread_mean,
-            'spread_std': spread_std,
-            'score': None  # Will calculate composite score
-        }
+        try:
+            # Correlation
+            correlation = stock_a.corr(stock_b)
+            
+            # Cointegration
+            eg_stat, eg_pvalue = self.engle_granger_test(stock_a, stock_b)
+            
+            # Hedge ratio and spread
+            hedge_ratio = self.calculate_hedge_ratio(stock_a, stock_b)
+            spread = self.calculate_spread(stock_a, stock_b, hedge_ratio)
+            
+            # Spread stationarity
+            adf_stat, adf_pvalue = self.adf_test(spread)
+            
+            # Mean reversion metrics
+            half_life_days = self.half_life(spread)
+            hurst = self.hurst_exponent(spread)
+            
+            # Spread statistics
+            spread_mean = spread.mean()
+            spread_std = spread.std()
+            
+            return {
+                'pair': f"{ticker_a}/{ticker_b}",
+                'correlation': correlation,
+                'eg_statistic': eg_stat,
+                'eg_pvalue': eg_pvalue,
+                'cointegrated': eg_pvalue < 0.05,
+                'hedge_ratio': hedge_ratio,
+                'adf_statistic': adf_stat,
+                'adf_pvalue': adf_pvalue,
+                'spread_stationary': adf_pvalue < 0.05,
+                'half_life': half_life_days,
+                'hurst': hurst,
+                'mean_reverting': hurst < 0.5,
+                'spread_mean': spread_mean,
+                'spread_std': spread_std,
+                'score': None
+            }
+        except Exception as e:
+            # Return failed result
+            return {
+                'pair': f"{ticker_a}/{ticker_b}",
+                'correlation': 0.0,
+                'eg_statistic': 0.0,
+                'eg_pvalue': 1.0,
+                'cointegrated': False,
+                'hedge_ratio': 0.0,
+                'adf_statistic': 0.0,
+                'adf_pvalue': 1.0,
+                'spread_stationary': False,
+                'half_life': np.inf,
+                'hurst': 0.5,
+                'mean_reverting': False,
+                'spread_mean': 0.0,
+                'spread_std': 0.0,
+                'score': 0.0
+            }
     
     @staticmethod
     def calculate_pair_score(result: Dict) -> float:
@@ -239,7 +288,7 @@ def screen_all_pairs(stocks_a: list, stocks_b: list, fetcher, analyzer) -> pd.Da
                 continue
             
             count += 1
-            print(f"Testing {count}/{total_pairs}: {ticker_a}/{ticker_b}...", end='\r')
+            print(f"Testing {count}/{total_pairs-len(stocks_a)}: {ticker_a}/{ticker_b}...", end='\r')
             
             try:
                 # Fetch data
@@ -260,10 +309,14 @@ def screen_all_pairs(stocks_a: list, stocks_b: list, fetcher, analyzer) -> pd.Da
                 results.append(result)
                 
             except Exception as e:
-                print(f"\nError with {ticker_a}/{ticker_b}: {e}")
+                print(f"\nError with {ticker_a}/{ticker_b}: {str(e)[:50]}")
                 continue
     
-    print("\nScreening complete!")
+    print("\nScreening complete!" + " "*50)
+    
+    if len(results) == 0:
+        print("⚠️  WARNING: No pairs successfully analyzed!")
+        return pd.DataFrame()
     
     # Convert to DataFrame and sort
     df = pd.DataFrame(results)
