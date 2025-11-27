@@ -14,7 +14,7 @@ warnings.filterwarnings('ignore')
 class DataFetcher:
     """Fetch and prepare stock data for pairs analysis."""
     
-    def __init__(self, start_date: str = "2015-01-01", end_date: str = "2024-12-31"):
+    def __init__(self, start_date: str = "2015-01-01", end_date: str = "2025-01-01"):
         self.start_date = start_date
         self.end_date = end_date
     
@@ -29,9 +29,15 @@ class DataFetcher:
             Series with adjusted close prices
         """
         try:
-            data = yf.download(ticker, start=self.start_date, end=self.end_date, 
-                             auto_adjust=True, progress=False)
+            stock = yf.Ticker(ticker)
+            data = stock.history(start=self.start_date, end=self.end_date, auto_adjust=True)
+            
+            if data.empty or len(data) < 100:
+                return pd.Series(dtype=float)
+            
+            # Return Close price as Series with proper index
             return data['Close']
+            
         except Exception as e:
             print(f"Error fetching {ticker}: {e}")
             return pd.Series(dtype=float)
@@ -50,8 +56,22 @@ class DataFetcher:
         stock_a = self.fetch_stock(ticker_a)
         stock_b = self.fetch_stock(ticker_b)
         
+        # Check if we got valid data
+        if stock_a.empty or stock_b.empty:
+            return pd.DataFrame()
+        
         # Combine and drop NaN (align trading days)
-        df = pd.DataFrame({ticker_a: stock_a, ticker_b: stock_b}).dropna()
+        df = pd.DataFrame({
+            ticker_a: stock_a,
+            ticker_b: stock_b
+        })
+        
+        # Drop rows with any NaN values
+        df = df.dropna()
+        
+        # Ensure we have enough data
+        if len(df) < 100:
+            return pd.DataFrame()
         
         return df
     
@@ -68,6 +88,11 @@ class DataFetcher:
         try:
             data = yf.download(tickers, start=self.start_date, end=self.end_date,
                              auto_adjust=True, progress=False)['Close']
+            
+            # Handle single ticker case
+            if isinstance(data, pd.Series):
+                data = data.to_frame(name=tickers[0])
+            
             return data.dropna()
         except Exception as e:
             print(f"Error fetching multiple stocks: {e}")

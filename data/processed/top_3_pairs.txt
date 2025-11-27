@@ -1,0 +1,87 @@
+======================================================================
+MULTI-AGENT PAIRS TRADING - TOP 3 SELECTED PAIRS
+Generated: 2025-11-27 14:50:51
+======================================================================
+
+RANK 2: RUN/PBW
+----------------------------------------------------------------------
+Overall Score:        80.0/100
+
+📊 Statistical Measures:
+   Correlation:       0.9402
+   Hedge Ratio:       0.7348
+
+🔗 Cointegration Test:
+   EG p-value:        0.005616 ✓ PASS
+   Cointegrated:      Yes
+
+📈 Mean Reversion:
+   Half-life:         103.16 days
+   Hurst Exponent:    0.4639 (mean-reverting)
+
+📉 Spread Statistics:
+   ADF p-value:       0.001072 ✓ Stationary
+   Spread Mean:       -4.6983
+   Spread Std Dev:    5.7081
+
+======================================================================
+
+RANK 1: NEE/CWEN
+----------------------------------------------------------------------
+Overall Score:        80.0/100
+
+📊 Statistical Measures:
+   Correlation:       0.9479
+   Hedge Ratio:       2.6481
+
+🔗 Cointegration Test:
+   EG p-value:        0.002805 ✓ PASS
+   Cointegrated:      Yes
+
+📈 Mean Reversion:
+   Half-life:         63.98 days
+   Hurst Exponent:    0.3374 (mean-reverting)
+
+📉 Spread Statistics:
+   ADF p-value:       0.000493 ✓ Stationary
+   Spread Mean:       2.2495
+   Spread Std Dev:    6.4086
+
+======================================================================
+
+RANK 3: PLUG/RUN
+----------------------------------------------------------------------
+Overall Score:        80.0/100
+
+📊 Statistical Measures:
+   Correlation:       0.8718
+   Hedge Ratio:       0.6209
+
+🔗 Cointegration Test:
+   EG p-value:        0.007284 ✓ PASS
+   Cointegrated:      Yes
+
+📈 Mean Reversion:
+   Half-life:         97.98 days
+   Hurst Exponent:    0.4811 (mean-reverting)
+
+📉 Spread Statistics:
+   ADF p-value:       0.001438 ✓ Stationary
+   Spread Mean:       -3.2074
+   Spread Std Dev:    5.8497
+
+======================================================================
+
+
+📝 TRADING LOGIC:
+----------------------------------------------------------------------
+When Z-score > 2.5:  Short the spread (short stock A, long stock B)
+When Z-score < -2.5: Long the spread (long stock A, short stock B)
+When Z-score → 0:    Exit position (mean reversion complete)
+
+💡 INTERPRETATION:
+----------------------------------------------------------------------
+- Lower half-life = faster mean reversion = more frequent trades
+- Hurst < 0.5 = mean-reverting behavior (good for pairs trading)
+- High correlation = stocks move together (reduces basis risk)
+- Low EG p-value = strong cointegration (stable long-term relationship)

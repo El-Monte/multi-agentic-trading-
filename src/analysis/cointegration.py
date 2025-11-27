@@ -20,13 +20,6 @@ class CointegrationAnalyzer:
     def adf_test(series: pd.Series) -> Tuple[float, float]:
         """
         Augmented Dickey-Fuller test for stationarity.
-        
-        Args:
-            series: Time series to test
-        
-        Returns:
-            (test_statistic, p_value)
-            p_value < 0.05 → stationary (good for spreads)
         """
         result = adfuller(series.dropna(), autolag='AIC')
         return result[0], result[1]
@@ -35,14 +28,6 @@ class CointegrationAnalyzer:
     def engle_granger_test(stock_a: pd.Series, stock_b: pd.Series) -> Tuple[float, float]:
         """
         Engle-Granger two-step cointegration test.
-        
-        Args:
-            stock_a: Price series for first stock
-            stock_b: Price series for second stock
-        
-        Returns:
-            (test_statistic, p_value)
-            p_value < 0.05 → cointegrated (good pair)
         """
         result = coint(stock_a, stock_b)
         return result[0], result[1]
@@ -51,35 +36,15 @@ class CointegrationAnalyzer:
     def calculate_hedge_ratio(stock_a: pd.Series, stock_b: pd.Series) -> float:
         """
         OLS regression to find optimal hedge ratio.
-        
-        Args:
-            stock_a: Dependent variable (Y)
-            stock_b: Independent variable (X)
-        
-        Returns:
-            Beta coefficient (units of stock_b per unit of stock_a)
         """
-        # Add constant to the independent variable
         X = add_constant(stock_b)
-        
-        # Run OLS regression: stock_a = alpha + beta * stock_b
         model = OLS(stock_a, X).fit()
-        
-        # Return beta coefficient (slope)
-        return model.params[1]  # params[0] is intercept, params[1] is slope
+        return model.params[1]
     
     @staticmethod
     def calculate_spread(stock_a: pd.Series, stock_b: pd.Series, hedge_ratio: float) -> pd.Series:
         """
         Calculate the spread: stock_a - hedge_ratio * stock_b
-        
-        Args:
-            stock_a: First stock price
-            stock_b: Second stock price
-            hedge_ratio: Multiplier for stock_b
-        
-        Returns:
-            Spread series
         """
         return stock_a - hedge_ratio * stock_b
     
@@ -88,40 +53,49 @@ class CointegrationAnalyzer:
         """
         Calculate mean reversion half-life via AR(1) model.
         
-        Args:
-            spread: Spread time series
-        
         Returns:
             Half-life in days (lower = faster mean reversion)
         """
-        spread_lag = spread.shift(1).dropna()
-        spread_diff = spread.diff().dropna()
+        # Remove NaN values
+        spread_clean = spread.dropna()
         
-        # Align series
-        spread_lag = spread_lag[spread_diff.index]
+        if len(spread_clean) < 20:
+            return np.inf
+        
+        # Create lagged spread
+        spread_lag = spread_clean.shift(1).dropna()
+        spread_diff = spread_clean.diff().dropna()
+        
+        # Align the series
+        common_index = spread_lag.index.intersection(spread_diff.index)
+        spread_lag = spread_lag.loc[common_index]
+        spread_diff = spread_diff.loc[common_index]
         
         if len(spread_lag) < 10:
             return np.inf
         
-        # Add constant for OLS
-        X = add_constant(spread_lag)
-        
-        # AR(1): Δspread = alpha + λ * spread_lag + ε
         try:
-            model = OLS(spread_diff, X).fit()
-            lambda_coef = model.params[1]  # params[1] is the coefficient on spread_lag
+            # AR(1) regression: Δspread_t = λ * spread_{t-1}
+            X = spread_lag.values.reshape(-1, 1)
+            y = spread_diff.values
             
-            if lambda_coef >= 0:
-                return np.inf  # Not mean-reverting
+            # OLS estimate
+            beta = np.linalg.lstsq(X, y, rcond=None)[0][0]
             
-            half_life = -np.log(2) / lambda_coef
-            
-            # Sanity check
-            if half_life < 0 or half_life > 500:
+            # Must be negative for mean reversion
+            if beta >= 0:
                 return np.inf
-                
-            return half_life
-        except:
+            
+            # Half-life calculation
+            half_life_val = -np.log(2) / beta
+            
+            # Sanity checks
+            if half_life_val <= 0 or half_life_val > 500 or not np.isfinite(half_life_val):
+                return np.inf
+            
+            return half_life_val
+            
+        except Exception as e:
             return np.inf
     
     @staticmethod
@@ -129,24 +103,19 @@ class CointegrationAnalyzer:
         """
         Calculate Hurst exponent to test mean reversion.
         
-        Args:
-            series: Time series
-        
         Returns:
             H < 0.5 → mean-reverting
             H = 0.5 → random walk
             H > 0.5 → trending
         """
         try:
-            lags = range(2, 100)
+            lags = range(2, min(100, len(series)//2))
             tau = [np.std(np.subtract(series[lag:].values, series[:-lag].values)) for lag in lags]
             
-            # Remove any invalid values
             tau = [t for t in tau if t > 0 and np.isfinite(t)]
             if len(tau) < 10:
                 return 0.5
             
-            # Linear regression of log(tau) vs log(lag)
             poly = np.polyfit(np.log(lags[:len(tau)]), np.log(tau), 1)
             return poly[0]
         except:
@@ -156,15 +125,6 @@ class CointegrationAnalyzer:
                     ticker_a: str, ticker_b: str) -> Dict:
         """
         Comprehensive analysis of a potential pair.
-        
-        Args:
-            stock_a: First stock prices
-            stock_b: Second stock prices
-            ticker_a: First stock symbol
-            ticker_b: Second stock symbol
-        
-        Returns:
-            Dictionary with all test results
         """
         try:
             # Correlation
@@ -206,7 +166,6 @@ class CointegrationAnalyzer:
                 'score': None
             }
         except Exception as e:
-            # Return failed result
             return {
                 'pair': f"{ticker_a}/{ticker_b}",
                 'correlation': 0.0,
@@ -229,11 +188,6 @@ class CointegrationAnalyzer:
     def calculate_pair_score(result: Dict) -> float:
         """
         Composite score for ranking pairs (higher = better).
-        
-        Scoring criteria:
-        - Cointegration (50%): Lower p-value is better
-        - Mean reversion (30%): Lower Hurst, shorter half-life
-        - Correlation (20%): Higher correlation
         """
         score = 0.0
         
@@ -242,15 +196,15 @@ class CointegrationAnalyzer:
             score += 50
         elif result['eg_pvalue'] < 0.05:
             score += 30
-        else:
-            score += 0
+        elif result['eg_pvalue'] < 0.10:
+            score += 20
         
         # Mean reversion score (0-30 points)
         if result['hurst'] < 0.4 and result['half_life'] < 30:
             score += 30
         elif result['hurst'] < 0.5 and result['half_life'] < 60:
             score += 20
-        elif result['hurst'] < 0.5:
+        elif result['hurst'] < 0.6 and result['half_life'] < 120:
             score += 10
         
         # Correlation score (0-20 points)
@@ -267,15 +221,6 @@ class CointegrationAnalyzer:
 def screen_all_pairs(stocks_a: list, stocks_b: list, fetcher, analyzer) -> pd.DataFrame:
     """
     Test all possible pairs from two lists of stocks.
-    
-    Args:
-        stocks_a: First list of tickers
-        stocks_b: Second list of tickers
-        fetcher: DataFetcher instance
-        analyzer: CointegrationAnalyzer instance
-    
-    Returns:
-        DataFrame with results sorted by score
     """
     results = []
     
@@ -291,34 +236,28 @@ def screen_all_pairs(stocks_a: list, stocks_b: list, fetcher, analyzer) -> pd.Da
             print(f"Testing {count}/{total_pairs-len(stocks_a)}: {ticker_a}/{ticker_b}...", end='\r')
             
             try:
-                # Fetch data
                 data = fetcher.fetch_pair(ticker_a, ticker_b)
                 
-                if len(data) < 500:  # Need enough data
+                if len(data) < 500:
                     continue
                 
-                # Analyze pair
                 result = analyzer.analyze_pair(
                     data[ticker_a], data[ticker_b], 
                     ticker_a, ticker_b
                 )
                 
-                # Calculate score
                 result['score'] = analyzer.calculate_pair_score(result)
                 
                 results.append(result)
                 
             except Exception as e:
-                print(f"\nError with {ticker_a}/{ticker_b}: {str(e)[:50]}")
                 continue
     
     print("\nScreening complete!" + " "*50)
     
     if len(results) == 0:
-        print("⚠️  WARNING: No pairs successfully analyzed!")
         return pd.DataFrame()
     
-    # Convert to DataFrame and sort
     df = pd.DataFrame(results)
     df = df.sort_values('score', ascending=False).reset_index(drop=True)
     
