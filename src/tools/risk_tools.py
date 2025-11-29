@@ -71,7 +71,7 @@ def check_correlation(new_ticker: str, existing_tickers: List[str], correlation_
         tickers_str = " ".join(all_tickers)
         
         # Download 3 months of data
-        data = yf.download(tickers_str, period="3mo", progress=False, auto_adjust=True)['Close']
+        data = yf.download(tickers_str, period="6mo", progress=False, auto_adjust=True)['Close']
         
         if data.empty:
              return {"allowed": False, "reason": "Failed to fetch price data."}
