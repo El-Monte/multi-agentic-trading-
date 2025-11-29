@@ -1,11 +1,11 @@
 import os
-from crewai import Agent
+from crewai import Agent, LLM
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 class TradingAgents:
     def __init__(self):
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash", 
+        self.llm = LLM(
+            model="gemini/gemini-2.5-flash", 
             verbose=True,
             temperature=0.1,         
             max_tokens=8192, 
@@ -38,7 +38,7 @@ class TradingAgents:
                 "When Z-score > 2.0 or < -2.0, you alert the team. You do not care about news, only math."
             ),
             verbose=True,
-            allow_delegation=False, # Specialists focus on their own job
+            allow_delegation=False, 
             llm=self.llm,
             tools=[]
         )

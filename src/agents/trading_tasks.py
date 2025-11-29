@@ -2,7 +2,6 @@ from crewai import Task
 
 class TradingTasks:
     def __init__(self):
-        # We don't need any special init logic for now
         pass
 
     def analysis_task(self, agent, pair_name, tickers):
@@ -27,7 +26,7 @@ class TradingTasks:
             agent=agent,
             expected_output="""
                 A detailed report containing:
-                - Current Z-Score
+                - Current Z-Scores
                 - The suggested SIGNAL (LONG_SPREAD, SHORT_SPREAD, EXIT, HOLD)
                 - A brief reasoning paragraph explaining why based on the data.
             """
