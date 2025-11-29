@@ -13,6 +13,7 @@ plotly
 # Multi-Agent Framework (Day 4+)
 crewai
 langchain
+langchain_google_genai
 
 # Backtesting (Day 5+)
 vectorbt
