@@ -84,65 +84,60 @@ def calculate_spread_and_zscore(ticker_leg1: str, ticker_leg2: str, hedge_ratio:
     
 
 @tool("Generate Trade Signal")
-def generate_trade_signal(z_score: float, entry_threshold: float = 2.5, exit_threshold: float = 0.5) -> Dict:
+def generate_trade_signal(z_score: float, entry_threshold: float = 2.5, exit_threshold: float = 0.5, stop_loss_threshold: float = 4.0) -> Dict:
     """
-    Analyzes the Z-score to generate a trading signal (Buy, Sell, Close, Hold) based on mean reversion logic.
+    Analyzes the Z-score to generate a trading signal based on mean reversion logic.
+    Includes a 'Stop Loss' mechanism to close positions if the spread diverges too far.
     
     Args:
-        z_score (float): The current Z-score of the pair spread.
-        entry_threshold (float): Z-score magnitude required to open a position (default 2.5).
-        exit_threshold (float): Z-score magnitude required to close a position (default 0.5).
+        z_score (float): The current Z-score.
+        entry_threshold (float): Z-score to enter trade (default 2.5).
+        exit_threshold (float): Z-score to exit trade profitably (default 0.5).
+        stop_loss_threshold (float): Z-score to Panic Close to prevent blowups (default 4.0).
     
     Returns:
-        Dict: Contains:
-            - 'signal': The action (OPEN_LONG, OPEN_SHORT, CLOSE_LONG, CLOSE_SHORT, HOLD).
-            - 'confidence': A score (0.0 to 1.0) based on how extreme the Z-score is.
-            - 'reason': Text explanation for the agent.
-            
-    Example:
-        result = generate_trade_signal(2.6, 2.5, 0.5)
-        # Returns: {'signal': 'OPEN_SHORT', 'confidence': 1.0, ...}
+        Dict: Signal, confidence, and reason.
     """
-    
-    # 1. Determine the Signal
+    # 1. STOP LOSS CHECK (Priority #1)
+    if abs(z_score) > stop_loss_threshold:
+        return {
+            "signal": "CLOSE",
+            "confidence": 1.0,
+            "reason": f"STOP LOSS TRIGGERED. Z-score {z_score} exceeded safety limit {stop_loss_threshold}. Variance is exploding.",
+            "parameters": {"z_score": z_score, "stop_loss": True}
+        }
+        
+    # 2. Normal Logic
     signal = "HOLD"
     reason = f"Z-score {z_score} is within neutral bounds."
     
-    # Check for Entry Signals (Extreme values)
     if z_score > entry_threshold:
-        signal = "OPEN_SHORT" # Spread is too high, bet on it falling
-        reason = f"Z-score {z_score} > {entry_threshold}. Spread is overextended (expensive)."
+        signal = "OPEN_SHORT"
+        reason = f"Z-score {z_score} > {entry_threshold}. Overbought."
     elif z_score < -entry_threshold:
-        signal = "OPEN_LONG"  # Spread is too low, bet on it rising
-        reason = f"Z-score {z_score} < -{entry_threshold}. Spread is undervalued (cheap)."
-        
-    # Check for Exit Signals (Return to mean)
-    # Note: In a real system, we'd need to know if we currently HAVE a position to know if we should close it.
-    # For this simplified tool, we report that conditions are suitable for closing.
+        signal = "OPEN_LONG"
+        reason = f"Z-score {z_score} < -{entry_threshold}. Oversold."
     elif abs(z_score) < exit_threshold:
         signal = "CLOSE"
-        reason = f"Z-score {z_score} is near mean (within +/- {exit_threshold}). Close positions."
+        reason = f"Z-score {z_score} returned to mean."
 
-    # 2. Calculate Confidence
-    # Logic: The further past the threshold we are, the higher the confidence (capped at 1.0)
-    # Example: If Threshold is 2.5 and Z is 3.0, confidence is high.
-    
+    # 3. Confidence Calculation
     excess = max(0, abs(z_score) - entry_threshold)
-    # Simple scaling: Every 0.5 sigma past threshold adds 20% confidence, starting base 0.6
     if signal in ["OPEN_LONG", "OPEN_SHORT"]:
-        confidence = min(1.0, 0.6 + (excess * 0.4)) 
+        confidence = min(1.0, 0.6 + (excess * 0.4))
     elif signal == "CLOSE":
-        confidence = 1.0 # High confidence to close when we hit the mean
+        confidence = 1.0
     else:
-        confidence = 0.0 # No trade, no confidence needed
+        confidence = 0.0
         
     return {
         "signal": signal,
         "confidence": float(round(confidence, 2)),
         "reason": reason,
         "parameters": {
-            "z_score": z_score,
-            "entry_threshold": entry_threshold,
-            "exit_threshold": exit_threshold
+            "z_score": z_score, 
+            "entry": entry_threshold, 
+            "exit": exit_threshold,
+            "stop_loss": stop_loss_threshold
         }
     }
