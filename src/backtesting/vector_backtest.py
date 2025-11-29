@@ -9,6 +9,7 @@ def run_vectorized_backtest(
     hedge_ratio: float, 
     entry_threshold: float = 2.5, 
     exit_threshold: float = 0.5,
+    lookback_window: int = 20,
     start_date: str = "2020-01-01",
     end_date: str = "2024-12-30"
 ):
