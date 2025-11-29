@@ -114,3 +114,86 @@ def check_correlation(new_ticker: str, existing_tickers: List[str], correlation_
 
     except Exception as e:
         return {"error": str(e)}
+
+@tool("Check Volatility Regime")
+def check_volatility_regime(
+    ticker1: str,
+    ticker2: str,
+    lookback_short: int = 20,
+    lookback_long: int = 120,
+    threshold_ratio: float = 2.0
+) -> Dict:
+    """
+    Detects whether the market is in a high-volatility regime for a given pair.
+
+    Pairs trading performs poorly during volatility spikes because spreads lose
+    mean-reverting behavior. This tool prevents opening new positions during
+    unstable market regimes.
+
+    Logic:
+        short_vol  = rolling std(returns) over lookback_short
+        long_vol   = rolling std(returns) over lookback_long
+        if short_vol > threshold_ratio * long_vol → HIGH_VOL (trade NOT allowed)
+
+    Args:
+        ticker1 (str): First leg of the pair.
+        ticker2 (str): Second leg of the pair.
+        lookback_short (int): Short-term window for volatility (default 20 days).
+        lookback_long (int): Long-term historical volatility (default 120 days).
+        threshold_ratio (float): Regime threshold (default 2× rise in vol).
+
+    Returns:
+        Dict:
+            - regime: "NORMAL" or "HIGH_VOL"
+            - allowed: True/False
+            - short_vol: recent volatility
+            - long_vol: historical volatility
+            - reason: explanation for the agent
+    """
+
+    try:
+        tickers = f"{ticker1} {ticker2}"
+        data = yf.download(
+            tickers, 
+            period="1y",          # fetch enough history
+            progress=False,
+            auto_adjust=True
+        )["Close"]
+
+        if data.empty:
+            return {"error": "Unable to fetch prices for volatility regime."}
+
+        # Spread-based volatility is more accurate
+        spread = data[ticker1] - data[ticker2]
+        spread_returns = spread.pct_change().dropna()
+
+        short_vol = spread_returns.rolling(lookback_short).std().iloc[-1]
+        long_vol = spread_returns.rolling(lookback_long).std().iloc[-1]
+
+        if pd.isna(short_vol) or pd.isna(long_vol):
+            return {"error": "Not enough data for volatility calculation."}
+
+        # Default state
+        regime = "NORMAL"
+        allowed = True
+
+        # High-volatility regime detection
+        if short_vol > threshold_ratio * long_vol:
+            regime = "HIGH_VOL"
+            allowed = False
+
+        return {
+            "regime": regime,
+            "allowed": allowed,
+            "short_vol": round(float(short_vol), 6),
+            "long_vol": round(float(long_vol), 6),
+            "reason": (
+                "Volatility spike detected — trading not allowed."
+                if not allowed else
+                "Volatility normal — safe to trade."
+            )
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
