@@ -1,0 +1,30 @@
+metadata:
+  generated_at: '2025-11-27T14:50:51.072873'
+  total_pairs_screened: 420
+  qualified_pairs: 14
+  selected_pairs: 3
+pairs:
+- rank: 2
+  ticker_a: RUN
+  ticker_b: PBW
+  hedge_ratio: 0.7348099844700569
+  correlation: 0.9402468917259788
+  half_life_days: 103.16178749493248
+  hurst_exponent: 0.463899355181124
+  score: 80.0
+- rank: 1
+  ticker_a: NEE
+  ticker_b: CWEN
+  hedge_ratio: 2.6480660345043887
+  correlation: 0.9478624450112714
+  half_life_days: 63.98060466769479
+  hurst_exponent: 0.33742739744193934
+  score: 80.0
+- rank: 3
+  ticker_a: PLUG
+  ticker_b: RUN
+  hedge_ratio: 0.6209171665847784
+  correlation: 0.8717698244628637
+  half_life_days: 97.98117769527985
+  hurst_exponent: 0.48112846586889924
+  score: 80.0
