@@ -1,0 +1,199 @@
+import yfinance as yf
+import pandas as pd
+from crewai.tools import tool
+from typing import Dict, List, Union
+
+@tool("Check Risk Limits")
+def check_risk_limits(current_positions_value: float, new_trade_value: float, total_capital: float, max_leverage: float = 2.0) -> Dict:
+    """
+    Checks if a proposed trade violates portfolio leverage limits.
+    
+    Args:
+        current_positions_value (float): Total market value (absolute) of all currently held positions.
+        new_trade_value (float): The total $ value of the proposed new trade (Long + Short legs).
+        total_capital (float): The total account equity (Cash + Positions).
+        max_leverage (float): Maximum allowed leverage ratio (default 2.0).
+        
+    Returns:
+        Dict: {'allowed': bool, 'reason': str, 'new_leverage': float}
+    """
+    try:
+        # 1. Calculate Projected Exposure (Current + New)
+        projected_exposure = current_positions_value + new_trade_value
+        
+        # 2. Calculate Leverage
+        # Leverage = Total Exposure / Total Equity
+        if total_capital == 0:
+             return {"allowed": False, "reason": "Total capital is zero."}
+             
+        new_leverage = projected_exposure / total_capital
+        
+        # 3. Check Limit
+        if new_leverage > max_leverage:
+            return {
+                "allowed": False,
+                "reason": f"Leverage limit exceeded. Projected: {new_leverage:.2f}x > Max: {max_leverage}x",
+                "current_leverage": round(current_positions_value / total_capital, 2),
+                "new_leverage": round(new_leverage, 2)
+            }
+        
+        return {
+            "allowed": True,
+            "reason": "Risk checks passed. Leverage within limits.",
+            "new_leverage": round(new_leverage, 2)
+        }
+    except Exception as e:
+        return {"allowed": False, "reason": f"Error: {str(e)}"}
+
+@tool("Check Portfolio Correlation")
+def check_correlation(new_ticker: str, existing_tickers: List[str], correlation_threshold: float = 0.85) -> Dict:
+    """
+    Checks if a new stock is too highly correlated with any stock currently in the portfolio.
+    
+    Args:
+        new_ticker (str): The ticker symbol of the stock we want to trade.
+        existing_tickers (List[str]): List of tickers we already hold positions in.
+        correlation_threshold (float): Max allowed correlation (default 0.85).
+    
+    Returns:
+        Dict: 
+            - 'allowed': bool
+            - 'max_correlation': float (The highest correlation found)
+            - 'conflicting_ticker': str (The ticker it clashed with)
+    """
+    if not existing_tickers:
+        return {"allowed": True, "max_correlation": 0.0, "reason": "Portfolio is empty."}
+        
+    try:
+        # 1. Fetch Data for ALL tickers (New + Existing)
+        all_tickers = existing_tickers + [new_ticker]
+        # Join list into string for yfinance (e.g., "NEE CWEN RUN")
+        tickers_str = " ".join(all_tickers)
+        
+        # Download 3 months of data
+        data = yf.download(tickers_str, period="6mo", progress=False, auto_adjust=True)['Close']
+        
+        if data.empty:
+             return {"allowed": False, "reason": "Failed to fetch price data."}
+
+        # 2. Calculate Daily Returns (Percentage Change)
+        # We look at correlation of RETURNS, not Prices (Prices are non-stationary)
+        returns = data.pct_change().dropna()
+        
+        # 3. Check Correlation against the New Ticker
+        # We only care about how 'new_ticker' correlates with the others
+        corr_matrix = returns.corr()
+        
+        max_corr = -1.0
+        conflict_ticker = None
+        
+        # Iterate through existing tickers to find the worst match
+        for ticker in existing_tickers:
+            if ticker in corr_matrix.columns and new_ticker in corr_matrix.columns:
+                # Get correlation value
+                corr_val = corr_matrix.loc[new_ticker, ticker]
+                
+                if corr_val > max_corr:
+                    max_corr = corr_val
+                    conflict_ticker = ticker
+        
+        # 4. Decision
+        if max_corr > correlation_threshold:
+            return {
+                "allowed": False,
+                "reason": f"High correlation detected with {conflict_ticker} ({max_corr:.2f}). Diversification required.",
+                "max_correlation": round(max_corr, 2),
+                "conflicting_ticker": conflict_ticker
+            }
+            
+        return {
+            "allowed": True,
+            "reason": "Correlation check passed. Asset provides diversification.",
+            "max_correlation": round(max_corr, 2)
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@tool("Check Volatility Regime")
+def check_volatility_regime(
+    ticker1: str,
+    ticker2: str,
+    lookback_short: int = 20,
+    lookback_long: int = 120,
+    threshold_ratio: float = 2.0
+) -> Dict:
+    """
+    Detects whether the market is in a high-volatility regime for a given pair.
+
+    Pairs trading performs poorly during volatility spikes because spreads lose
+    mean-reverting behavior. This tool prevents opening new positions during
+    unstable market regimes.
+
+    Logic:
+        short_vol  = rolling std(returns) over lookback_short
+        long_vol   = rolling std(returns) over lookback_long
+        if short_vol > threshold_ratio * long_vol → HIGH_VOL (trade NOT allowed)
+
+    Args:
+        ticker1 (str): First leg of the pair.
+        ticker2 (str): Second leg of the pair.
+        lookback_short (int): Short-term window for volatility (default 20 days).
+        lookback_long (int): Long-term historical volatility (default 120 days).
+        threshold_ratio (float): Regime threshold (default 2× rise in vol).
+
+    Returns:
+        Dict:
+            - regime: "NORMAL" or "HIGH_VOL"
+            - allowed: True/False
+            - short_vol: recent volatility
+            - long_vol: historical volatility
+            - reason: explanation for the agent
+    """
+
+    try:
+        tickers = f"{ticker1} {ticker2}"
+        data = yf.download(
+            tickers, 
+            period="1y",          # fetch enough history
+            progress=False,
+            auto_adjust=True
+        )["Close"]
+
+        if data.empty:
+            return {"error": "Unable to fetch prices for volatility regime."}
+
+        # Spread-based volatility is more accurate
+        spread = data[ticker1] - data[ticker2]
+        spread_returns = spread.pct_change().dropna()
+
+        short_vol = spread_returns.rolling(lookback_short).std().iloc[-1]
+        long_vol = spread_returns.rolling(lookback_long).std().iloc[-1]
+
+        if pd.isna(short_vol) or pd.isna(long_vol):
+            return {"error": "Not enough data for volatility calculation."}
+
+        # Default state
+        regime = "NORMAL"
+        allowed = True
+
+        # High-volatility regime detection
+        if short_vol > threshold_ratio * long_vol:
+            regime = "HIGH_VOL"
+            allowed = False
+
+        return {
+            "regime": regime,
+            "allowed": allowed,
+            "short_vol": round(float(short_vol), 6),
+            "long_vol": round(float(long_vol), 6),
+            "reason": (
+                "Volatility spike detected — trading not allowed."
+                if not allowed else
+                "Volatility normal — safe to trade."
+            )
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
