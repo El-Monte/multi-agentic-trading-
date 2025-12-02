@@ -1,18 +1,15 @@
 import os
 from crewai import Agent, LLM
-from langchain_google_genai import ChatGoogleGenerativeAI
 
 class TradingAgents:
     def __init__(self):
         self.llm = LLM(
-            model="gemini/gemini-2.5-flash", 
-            verbose=True,
-            temperature=0.1,         
-            max_tokens=8192, 
-            google_api_key=os.getenv("GOOGLE_API_KEY") 
+            model="gemini/gemini-2.5-flash",
+            temperature=0.1,
+            api_key=os.getenv("GOOGLE_API_KEY")
         )
 
-    def portfolio_coordinator(self):
+    def portfolio_coordinator(self, tools):
         return Agent(
             role='Portfolio Coordinator (CIO)',
             goal='Oversee trading activity, enforce risk limits, and make final capital allocation decisions.',
@@ -23,12 +20,13 @@ class TradingAgents:
                 "analysts (Pair Monitors) and Risk Manager. You make the final call on every trade."
             ),
             verbose=True,
-            allow_delegation=True, 
+            allow_delegation=True,
             llm=self.llm,
-            tools=[] 
+            tools=tools,
+            max_rpm=5  # <--- LIMITS SPEED TO 5 REQUESTS PER MINUTE
         )
 
-    def monitor_nee_cwen(self):
+    def monitor_nee_cwen(self, tools):
         return Agent(
             role='NEE/CWEN Pair Monitor',
             goal='Monitor price deviations between NextEra Energy (NEE) and Clearway Energy (CWEN).',
@@ -38,12 +36,13 @@ class TradingAgents:
                 "When Z-score > 2.0 or < -2.0, you alert the team. You do not care about news, only math."
             ),
             verbose=True,
-            allow_delegation=False, 
+            allow_delegation=False,
             llm=self.llm,
-            tools=[]
+            tools=tools,
+            max_rpm=5  # <--- LIMITS SPEED
         )
 
-    def monitor_run_pbw(self):
+    def monitor_run_pbw(self, tools):
         return Agent(
             role='RUN/PBW Pair Monitor',
             goal='Monitor price deviations between Sunrun (RUN) and Invesco Clean Energy ETF (PBW).',
@@ -55,10 +54,11 @@ class TradingAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            tools=[]
+            tools=tools,
+            max_rpm=5  # <--- LIMITS SPEED
         )
 
-    def monitor_plug_run(self):
+    def monitor_plug_run(self, tools):
         return Agent(
             role='PLUG/RUN Pair Monitor',
             goal='Monitor correlation and spreads between Plug Power (PLUG) and Sunrun (RUN).',
@@ -70,10 +70,11 @@ class TradingAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            tools=[]
+            tools=tools,
+            max_rpm=5  # <--- LIMITS SPEED
         )
 
-    def risk_manager(self):
+    def risk_manager(self, tools):
         return Agent(
             role='Risk Manager',
             goal='Enforce risk limits and prevent drawdown.',
@@ -85,10 +86,11 @@ class TradingAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            tools=[]
+            tools=tools,
+            max_rpm=5  # <--- LIMITS SPEED
         )
 
-    def execution_agent(self):
+    def execution_agent(self, tools):
         return Agent(
             role='Execution Trader',
             goal='Execute trades with minimal slippage.',
@@ -100,5 +102,6 @@ class TradingAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            tools=[]
+            tools=tools,
+            max_rpm=5  # <--- LIMITS SPEED
         )

@@ -1,100 +1,61 @@
 from crewai import Task
 
 class TradingTasks:
-    def __init__(self):
-        pass
+    def analysis_task(self, agent, pair_name, context_data=None):
+        # We split the pair name (e.g., "NEE/CWEN") so the agent knows which tickers to feed the tool
+        try:
+            leg1, leg2 = pair_name.split('/')
+        except ValueError:
+            leg1, leg2 = "Unknown", "Unknown"
 
-    def analysis_task(self, agent, pair_name, tickers):
-        """
-        Task for the Specialist Monitors (Agents 2, 3, 4).
-        It tells them to look at data and decide on a signal.
-        """
         return Task(
-            description=f"""
-                1. Analyze the current market data for the pair: {pair_name} ({tickers}).
-                2. Use your tools to fetch the current Z-Score and spread.
-                3. Compare the Z-Score against the threshold (+/- 2.5).
-                4. Check for any breaking news affecting these specific companies.
-                5. Determine the signal:
-                   - 'LONG_SPREAD' if Z-Score < -2.5
-                   - 'SHORT_SPREAD' if Z-Score > +2.5
-                   - 'EXIT' if Z-Score crosses 0
-                   - 'HOLD' otherwise.
-                
-                You must be precise. Do not hallucinate data. Use the tools provided.
-            """,
-            agent=agent,
-            expected_output="""
-                A detailed report containing:
-                - Current Z-Scores
-                - The suggested SIGNAL (LONG_SPREAD, SHORT_SPREAD, EXIT, HOLD)
-                - A brief reasoning paragraph explaining why based on the data.
-            """
+            description=(
+                f"Analyze the {pair_name} trading pair. "
+                f"Context: {context_data}. "
+                f"1. USE THE TOOL 'Calculate Spread and Z-Score' with ticker_leg1='{leg1}' and ticker_leg2='{leg2}' (hedge_ratio=0.94). "
+                f"2. Based on the Z-score returned, USE THE TOOL 'Generate Trade Signal'. "
+                "3. Return a report specifying: Signal (OPEN_LONG / OPEN_SHORT / HOLD), Z-Score, and Confidence."
+            ),
+            expected_output=f"Analysis Report for {pair_name} with Z-score and Signal.",
+            agent=agent
         )
 
-    def risk_assessment_task(self, agent, proposed_trades):
-        """
-        Task for the Risk Manager (Agent 5).
-        It reviews the signals from the monitors.
-        """
+    def risk_assessment_task(self, agent, context_tasks):
         return Task(
-            description=f"""
-                1. Review the proposed trading signals from the Pair Monitors: {proposed_trades}
-                2. Calculate the correlation impact on the total portfolio.
-                3. Check if any position size limits would be violated.
-                4. If a trade is too risky, change the signal to 'REJECTED'.
-                5. If acceptable, approve the trade.
-            """,
+            description=(
+                "Review the analysis reports from the pair monitors. "
+                "1. If there are no 'OPEN' signals, report 'NO TRADES'. "
+                "2. If there are signals, USE THE TOOL 'Check Risk Limits' to ensure leverage is safe. "
+                "3. USE THE TOOL 'Check Portfolio Correlation' to ensure we aren't too concentrated. "
+                "4. Output a list of APPROVED signals."
+            ),
+            expected_output="Risk Report listing approved trades vs rejected trades.",
             agent=agent,
-            expected_output="""
-                A Risk Assessment Report:
-                - List of Approved Trades
-                - List of Rejected Trades (with reasons)
-                - Final Risk Score of the portfolio (0-100)
-            """
+            context=context_tasks
         )
 
-    def allocation_task(self, agent, risk_report):
-        """
-        Task for the Portfolio Coordinator (Agent 1).
-        Decides how much money to put in each approved trade.
-        """
+    def allocation_task(self, agent, context_tasks):
         return Task(
-            description=f"""
-                1. Review the Risk Assessment Report: {risk_report}
-                2. For approved trades, calculate the optimal position size using the Kelly Criterion.
-                3. Ensure the total capital allocated does not exceed 100%.
-                4. Create the final execution orders.
-            """,
+            description=(
+                "Review the Approved Signals from the Risk Manager. "
+                "1. If no trades are approved, stop. "
+                "2. For approved trades, USE THE TOOL 'Calculate Position Size' (total_capital=100000). "
+                "3. Output the final 'Target Allocation' (exact dollar amount) for each pair."
+            ),
+            expected_output="Capital Allocation Order with specific dollar amounts.",
             agent=agent,
-            expected_output="""
-                Final Order List (JSON format preferred for Execution Agent):
-                [
-                    {"pair": "NEE/CWEN", "action": "BUY", "amount": 10000},
-                    ...
-                ]
-            """
+            context=context_tasks
         )
 
-    def execution_task(self, agent, final_orders):
-        """
-        Task for the Execution Agent (Agent 6).
-        Simulates the actual buying/selling.
-        """
+    def execution_task(self, agent, context_tasks):
         return Task(
-            description=f"""
-                1. Read the Final Order List: {final_orders}
-                2. For each order, simulate the execution using your tools.
-                3. Calculate estimated slippage and fees.
-                4. confirm the final execution prices.
-            """,
+            description=(
+                "Review the Allocation Order. "
+                "1. If no allocation, output 'No Trades Executed'. "
+                "2. Otherwise, USE THE TOOL 'Execute Pairs Trade' for each allocated trade. "
+                "3. Report the final execution confirmation."
+            ),
+            expected_output="Execution Log confirming filled orders.",
             agent=agent,
-            expected_output="""
-                Execution Log:
-                - Trade ID
-                - Ticker
-                - Fill Price
-                - Timestamp
-                - Status (FILLED/PARTIAL/FAILED)
-            """
+            context=context_tasks
         )
