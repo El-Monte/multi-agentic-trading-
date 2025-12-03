@@ -3,17 +3,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-import yfinance as yf
-import pandas as pd
-import numpy as np
-
 
 # 1. VECTOR BACKTEST FUNCTION
 
 def run_vectorized_backtest(
     ticker1: str,
     ticker2: str,
-    hedge_ratio: float,
+    hedge_ratio: float| None = None,
     entry_threshold: float = 2.5,
     exit_threshold: float = 0.5,
     window: int = 20,
@@ -28,7 +24,27 @@ def run_vectorized_backtest(
     """
 
     print(f"\n--- Running Backtest for {ticker1}/{ticker2} ---")
-    
+    if hedge_ratio is None:
+        from src.data.fetch_data import DataFetcher
+        from src.analysis.cointegration import CointegrationAnalyzer
+
+        print("Estimating hedge ratio dynamically via OLS...")
+
+        fetcher = DataFetcher()
+        pair_data = fetcher.fetch_pair(ticker1, ticker2)
+
+        if pair_data.empty:
+            print(f"[ERROR] No data available to estimate hedge ratio for {ticker1}/{ticker2}")
+            return None, None
+
+        analyzer = CointegrationAnalyzer()
+        hedge_ratio = analyzer.calculate_hedge_ratio(
+            pair_data[ticker1],
+            pair_data[ticker2]
+        )
+
+        print(f" → Estimated hedge ratio: {hedge_ratio:.4f}")
+
     # 1. Fetch Data
     tickers = f"{ticker1} {ticker2}"
     data = yf.download(
