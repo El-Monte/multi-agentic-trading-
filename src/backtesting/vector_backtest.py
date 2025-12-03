@@ -63,9 +63,9 @@ def run_vectorized_backtest(
     # 2. Spread & Z-score
     df['Spread'] = df['Leg1'] - (hedge_ratio * df['Leg2'])
     df['Spread_Mean'] = df['Spread'].rolling(window=window).mean()
-    df['Spread_Std'] = df['Spread'].rolling(window=window).std()
+    df['Spread_Std'] = df['Spread_Std'].replace(0, 1e-6)
     df['Z_Score'] = (df['Spread'] - df['Spread_Mean']) / df['Spread_Std']
-
+    
     # 3. State Machine (vectorized logic)
     df['Position'] = 0
     position = 0
@@ -100,7 +100,7 @@ def run_vectorized_backtest(
 
     # Transaction costs: 5 cents per trade
     cost_per_trade = 0.05
-    df['Trades'] = df['Position'].diff().abs()
+    df['Trades'] = (df['Position'] != df['Position'].shift(1)).astype(int)
     df['Transaction_Costs'] = df['Trades'] * cost_per_trade
 
     df['Net_PnL'] = df['Strategy_PnL_Daily'] - df['Transaction_Costs']
