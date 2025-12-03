@@ -4,8 +4,8 @@ Maps only the tools that Team B actually implemented.
 """
 import sys
 import os
+from src.tools.sentiment_tools import analyze_social_sentiment
 
-# Path Setup
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
@@ -41,7 +41,8 @@ from tools.execution_tools import (
 # Job: Analyze pairs and generate trade signals
 PAIR_MONITOR_TOOLS = [
     calculate_spread_and_zscore,  # Calculate spread Z-score
-    generate_trade_signal          # Generate LONG/SHORT/FLAT signal
+    generate_trade_signal, 
+    analyze_social_sentiment       
 ]
 
 # Risk Manager Agent

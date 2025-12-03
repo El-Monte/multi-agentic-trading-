@@ -32,11 +32,6 @@ class TradingCrew:
         print("\n" + "="*50)
         print("🤖 ASSEMBLING THE TRADING CREW")
         print("="*50)
-
-        # ---------------------------------------------------------------------
-        # STEP 1: INSTANTIATE AGENTS (WITH TOOLS INJECTED)
-        # ---------------------------------------------------------------------
-        # We pull the specific tool lists from TOOLS_REGISTRY for each role.
         
         # 1. Portfolio Coordinator (Manager)
         coordinator = self.agents_blueprint.portfolio_coordinator(

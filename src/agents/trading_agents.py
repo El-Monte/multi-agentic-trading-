@@ -22,8 +22,8 @@ class TradingAgents:
             verbose=True,
             allow_delegation=True,
             llm=self.llm,
-            tools=tools,
-            max_rpm=5  # <--- LIMITS SPEED TO 5 REQUESTS PER MINUTE
+            tools=tools, 
+            max_rpm=5 
         )
 
     def monitor_nee_cwen(self, tools):
@@ -38,8 +38,8 @@ class TradingAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            tools=tools,
-            max_rpm=5  # <--- LIMITS SPEED
+            tools=tools, 
+            max_rpm=5
         )
 
     def monitor_run_pbw(self, tools):
@@ -54,8 +54,8 @@ class TradingAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            tools=tools,
-            max_rpm=5  # <--- LIMITS SPEED
+            tools=tools, 
+            max_rpm=5
         )
 
     def monitor_plug_run(self, tools):
@@ -70,8 +70,8 @@ class TradingAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            tools=tools,
-            max_rpm=5  # <--- LIMITS SPEED
+            tools=tools, 
+            max_rpm=5
         )
 
     def risk_manager(self, tools):
@@ -86,8 +86,8 @@ class TradingAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            tools=tools,
-            max_rpm=5  # <--- LIMITS SPEED
+            tools=tools, 
+            max_rpm=5
         )
 
     def execution_agent(self, tools):
@@ -102,6 +102,6 @@ class TradingAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            tools=tools,
-            max_rpm=5  # <--- LIMITS SPEED
+            tools=tools, 
+            max_rpm=5
         )
