@@ -11,7 +11,7 @@ class TradingTasks:
             description=(
                 f"Analyze the {pair_name} trading pair. "
                 f"Context: {context_data}. "
-                f"1. USE 'Calculate Spread and Z-Score' for {leg1} and {leg2} (hedge_ratio=0.94). "
+                f"1. USE 'Calculate Spread and Z-Score' for {leg1} and {leg2}. "
                 f"2. USE 'Analyze Reddit Sentiment' for {leg1}. This will run a FinBERT model on raw data. " 
                 f"3. USE 'Generate Trade Signal' based on the Z-score. "
                 "4. SYNTHESIS: If Z-score suggests SHORT but Sentiment is BULLISH, downgrade the confidence. "
