@@ -4,6 +4,7 @@ pandas
 numpy
 scipy
 statsmodels
+refinitiv.data
 
 # Visualization
 matplotlib
