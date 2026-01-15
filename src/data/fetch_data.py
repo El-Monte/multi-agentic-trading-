@@ -14,7 +14,7 @@ warnings.filterwarnings('ignore')
 class DataFetcher:
     """Fetch and prepare stock data for pairs analysis."""
     
-    def __init__(self, start_date: str = "2015-01-01", end_date: str = "2023-01-01"):
+    def __init__(self, start_date: str = "2015-01-01", end_date: str = "2024-01-01"):
         self.start_date = start_date
         self.end_date = end_date
     
