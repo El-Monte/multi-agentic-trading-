@@ -358,7 +358,7 @@ def main():
     
     # Initialize
     print("🔧 Initializing components...")
-    fetcher = DataFetcher(start_date="2015-01-01", end_date="2025-01-01")
+    fetcher = DataFetcher(start_date="2015-01-01", end_date="2023-01-01")
     analyzer = CointegrationAnalyzer()
     print(f"   Stock universe: {len(ENERGY_STOCKS['brown'])} brown + {len(ENERGY_STOCKS['green'])} green")
     
