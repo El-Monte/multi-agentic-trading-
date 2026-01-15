@@ -214,3 +214,4 @@ __marimo__/
 data/processed/reddit_raw*.csv
 
 data/processed/*.csv
+data/.DS_Store
