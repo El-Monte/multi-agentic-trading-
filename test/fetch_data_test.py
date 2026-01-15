@@ -20,7 +20,7 @@ def test_fetch():
     print("="*60)
     
     # Initialize
-    fetcher = DataFetcher(start_date="2020-01-01", end_date="2024-01-01")
+    fetcher = DataFetcher(start_date="2023-01-02", end_date="2025-01-01")
     
     # Test 1: Single stock
     print("\n1. Testing single stock fetch (XOM)...")
