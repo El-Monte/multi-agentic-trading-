@@ -33,8 +33,12 @@ def run_vectorized_backtest(
     df['Leg2'] = data[ticker2]
     
     # 2. Calculate Spread and Z-Score
-    # Spread = Leg1 - (Hedge_Ratio * Leg2)
-    df['Spread'] = df['Leg1'] - (hedge_ratio * df['Leg2'])
+    window_beta = 60
+    rolling_cov = df['Leg1'].rolling(window=window_beta).cov(df['Leg2'])
+    rolling_var = df['Leg2'].rolling(window=window_beta).var()
+    df['Hedge_Ratio_Rolling'] = rolling_cov / rolling_var
+
+    df['Spread'] = df['Leg1'] - (df['Hedge_Ratio_Rolling'].shift(1) * df['Leg2'])
     
     # Rolling Window (20 days) matches our Tool
     window = 20
