@@ -209,3 +209,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# --- Data Files (Ignore all CSVs to prevent leaks) ---
+data/processed/reddit_raw*.csv
+
+data/processed/*.csv
+data/.DS_Store
