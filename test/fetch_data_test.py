@@ -9,7 +9,7 @@ import os
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from src.data.fetch_data import DataFetcher
+from src.data.Data_Fetcher import DataFetcher
 from src.analysis.cointegration import CointegrationAnalyzer
 
 def test_fetch():
