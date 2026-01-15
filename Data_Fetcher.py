@@ -475,7 +475,7 @@ class RefinitivESGSelector:
             pass
 
 
-class ESGDataFetcher:
+class DataFetcher:
     """Fetch price data for ESG-selected stocks from Yahoo Finance."""
     
     def __init__(self, start_date: str = "2015-01-01", end_date: str = "2024-12-31"):
@@ -591,7 +591,7 @@ def main():
         )
         
         # Step 4: Fetch price data from Yahoo Finance
-        fetcher = ESGDataFetcher(start_date="2015-01-01", end_date="2024-12-31")
+        fetcher = DataFetcher(start_date="2015-01-01", end_date="2024-12-31")
 
         all_tickers = selected_stocks['brown'] + selected_stocks['green']
         df = fetcher.fetch_multiple_stocks(all_tickers)
@@ -647,5 +647,6 @@ if __name__ == "__main__":
         print("="*60)
         best = esg_df.nlargest(10, 'environment_score')[['ticker', 'sector', 'environment_score']]
         print(best.to_string(index=False))
+
 
 
