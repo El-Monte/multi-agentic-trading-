@@ -9,76 +9,41 @@ def log_error(msg):
     print(f"[ERROR] {msg}")
 
 @tool("Calculate Spread and Z-Score")
-def calculate_spread_and_zscore(ticker_leg1: str, ticker_leg2: str, hedge_ratio: float, lookback_window: int = 20) -> Dict:
+def calculate_spread_and_zscore(ticker_leg1: str, ticker_leg2: str, lookback_window: int = 20) -> Dict:
     """
-    Calculates the current spread and Z-score for a given pair of stocks.
-    
-    This tool fetches the latest market data, computes the spread based on the 
-    provided hedge ratio, and normalizes it into a Z-score using a rolling window.
-    
-    Args:
-        ticker_leg1 (str): Ticker symbol for the first stock (Leg A).
-        ticker_leg2 (str): Ticker symbol for the second stock (Leg B).
-        hedge_ratio (float): The hedge ratio (beta) derived from cointegration analysis.
-        lookback_window (int): Number of days for rolling mean/std dev calculation. Default is 20.
-        
-    Returns:
-        Dict: Contains:
-            - 'z_score': The current Z-score (float).
-            - 'spread': The current raw spread value (float).
-            - 'leg1_price': Latest close price of Leg 1.
-            - 'leg2_price': Latest close price of Leg 2.
-            - 'mean': Current rolling mean of spread.
-            - 'std': Current rolling std dev of spread.
-            
-    Example:
-        result = calculate_spread_and_zscore("NEE", "CWEN", 0.948, 20)
+    Calculates the current spread and Z-score using a dynamic Rolling Hedge Ratio.
     """
     try:
-        # 1. Fetch Data
-        # We need enough data for the lookback window + some buffer. 
-        # Fetching 3 months ensures we have plenty of days for a 20-day window.
-        tickers = f"{ticker_leg1} {ticker_leg2}"
-        data = yf.download(tickers, period="3mo", progress=False)['Close']
+        # Fetch 6 months to have enough data for the 60-day rolling beta
+        data = yf.download(f"{ticker_leg1} {ticker_leg2}", period="6mo", progress=False)['Close']
+        if data.empty: return {"error": "No data"}
         
-        # Check if data is empty or missing columns
-        if data.empty or ticker_leg1 not in data.columns or ticker_leg2 not in data.columns:
-            return {"error": f"Failed to fetch data for {ticker_leg1} or {ticker_leg2}"}
-
-        # 2. Extract Series
-        leg1_prices = data[ticker_leg1]
-        leg2_prices = data[ticker_leg2]
-
-        # 3. Calculate Spread
-        # Formula: Spread = Leg1 - (Hedge_Ratio * Leg2)
-        spread_series = leg1_prices - (hedge_ratio * leg2_prices)
-
-        # 4. Calculate Rolling Statistics
-        # We use standard rolling window to avoid look-ahead bias
-        rolling_mean = spread_series.rolling(window=lookback_window).mean()
-        rolling_std = spread_series.rolling(window=lookback_window).std()
-
-        # 5. Calculate Z-Score
-        # Formula: Z = (Spread - Mean) / Std
-        z_score_series = (spread_series - rolling_mean) / rolling_std
-
-        # 6. Get the most recent values (the "Live" values)
-        latest_z = z_score_series.iloc[-1]
-        latest_spread = spread_series.iloc[-1]
+        df = data[[ticker_leg1, ticker_leg2]].dropna()
         
-        # Handle NaN (can happen if not enough data points for window)
-        if pd.isna(latest_z):
-            return {"error": "Not enough data to calculate Z-score (NaN result)"}
+        # 1. Dynamic Rolling Beta (Hedge Ratio) - Last 60 days
+        window_beta = 60
+        rolling_cov = df[ticker_leg1].rolling(window=window_beta).cov(df[ticker_leg2])
+        rolling_var = df[ticker_leg2].rolling(window=window_beta).var()
+        df['Dynamic_Beta'] = rolling_cov / rolling_var
+        
+        # 2. Calculate Spread using YESTERDAY'S Beta to avoid leakage
+        df['Spread'] = df[ticker_leg1] - (df['Dynamic_Beta'].shift(1) * df[ticker_leg2])
+        
+        # 3. Z-Score logic
+        df['Mean'] = df['Spread'].rolling(window=lookback_window).mean()
+        df['Std'] = df['Spread'].rolling(window=lookback_window).std()
+        df['Z_Score'] = (df['Spread'] - df['Mean']) / df['Std']
+        
+        latest = df.iloc[-1]
+        if pd.isna(latest['Z_Score']): return {"error": "NaN Z-score"}
 
         return {
-            "z_score": float(round(latest_z, 4)),
-            "spread": float(round(latest_spread, 4)),
-            "leg1_price": float(round(leg1_prices.iloc[-1], 2)),
-            "leg2_price": float(round(leg2_prices.iloc[-1], 2)),
-            "rolling_mean": float(round(rolling_mean.iloc[-1], 4)),
-            "rolling_std": float(round(rolling_std.iloc[-1], 4))
+            "z_score": float(round(latest['Z_Score'], 4)),
+            "current_hedge_ratio": float(round(latest['Dynamic_Beta'], 4)),
+            "spread": float(round(latest['Spread'], 4)),
+            "leg1_price": float(round(latest[ticker_leg1], 2)),
+            "leg2_price": float(round(latest[ticker_leg2], 2))
         }
-
     except Exception as e:
         return {"error": str(e)}
     
