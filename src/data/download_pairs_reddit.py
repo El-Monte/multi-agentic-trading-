@@ -6,6 +6,7 @@ from pathlib import Path
 import time
 from dotenv import load_dotenv
 
+# 1. Load Environment Variables
 load_dotenv()
 
 REDDIT_CLIENT_ID = os.getenv("REDDIT_CLIENT_ID")
@@ -14,23 +15,23 @@ REDDIT_USER_AGENT = os.getenv("REDDIT_USER_AGENT")
 REDDIT_USERNAME = os.getenv("REDDIT_USERNAME")
 REDDIT_PASSWORD = os.getenv("REDDIT_PASSWORD")
 
+# 2. Define Target Subreddits
+# Added 'dividends' and 'utilities' because these stocks are popular there
 TARGET_SUBREDDITS = [
     'investing', 'stocks', 'StockMarket', 'finance', 'SecurityAnalysis', 
-    'ValueInvesting', 'energy', 'RenewableEnergy', 'solarenergy', 
-    'cleanenergy', 'greeninvestor', 'wallstreetbets', 'options'
+    'ValueInvesting', 'energy', 'dividends', 'utilities',
+    'wallstreetbets', 'options'
 ]
 
+# 3. Define ONLY Your New Utility Pairs
+# Structure: { "TICKER": [list of search keywords] }
 TRADING_ASSETS = {
-    # Pair 1: NEE / CWEN
-    "NEE": ["NextEra Energy", "NextEra", "$NEE", "NEE stock"],
-    "CWEN": ["Clearway Energy", "Clearway", "$CWEN", "CWEN stock"],
+    # Pair 1: ETR / AEP
+    "ETR": ["Entergy", "$ETR", "ETR stock", "Entergy Corporation"],
+    "AEP": ["American Electric Power", "$AEP", "AEP stock"],
     
-    # Pair 2: RUN / PBW
-    "RUN": ["Sunrun", "$RUN", "RUN stock"],
-    "PBW": ["Invesco Clean Energy", "PBW", "WilderHill Clean Energy", "$PBW"],
-    
-    # Pair 3: PLUG / RUN (RUN is already covered above)
-    "PLUG": ["Plug Power", "$PLUG", "PLUG stock"]
+    # Pair 2 & 3 involve ATO
+    "ATO": ["Atmos Energy", "$ATO", "ATO stock", "Atmos"]
 }
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -40,8 +41,9 @@ os.makedirs(DATA_DIR, exist_ok=True)
 def classify_post_by_ticker(title: str, selftext: str) -> str | None:
     """
     Checks if a post mentions one of our specific trading assets.
-    Returns the Ticker (e.g., 'NEE') if found, otherwise None.
+    Returns the Ticker (e.g., 'ETR') if found, otherwise None.
     """
+    # Combine title and text for searching
     search_text = (str(title) + " " + str(selftext)).lower()
     
     # Iterate through our assets to find a match
@@ -105,8 +107,8 @@ def download_specific_pairs_data(subreddits: list[str], limit_per_keyword: int =
                                         'score': sub.score, 
                                         'num_comments': sub.num_comments,
                                         'url': sub.url,
-                                        'target_company': found_ticker, # e.g. "NEE"
-                                        'theme': 'Trading_Pair_Asset'
+                                        'target_company': found_ticker, # e.g. "ETR"
+                                        'theme': 'Utility_Pair_Asset'
                                     }
                     # Sleep slightly to respect API limits
                     time.sleep(0.5) 

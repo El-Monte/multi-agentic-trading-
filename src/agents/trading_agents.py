@@ -23,55 +23,62 @@ class TradingAgents:
             allow_delegation=True,
             llm=self.llm,
             tools=tools, 
-            max_rpm=5 
+            max_rpm=1 
         )
 
-    def monitor_nee_cwen(self, tools):
+    # --- UPDATED MONITOR #1: ETR / AEP ---
+    def monitor_etr_aep(self, tools):
         return Agent(
-            role='NEE/CWEN Pair Monitor',
-            goal='Monitor price deviations between NextEra Energy (NEE) and Clearway Energy (CWEN).',
+            role='Large-Cap Electric Utility Analyst',
+            goal='Monitor price deviations between Entergy (ETR) and American Electric Power (AEP).',
             backstory=(
-                "You are a senior analyst specializing in renewable utility stocks. "
-                "You strictly follow Mean Reversion theory. You monitor the Z-score between NEE and CWEN. "
-                "When Z-score > 2.0 or < -2.0, you alert the team. You do not care about news, only math."
+                "You are a senior analyst specializing in regulated electric utilities. "
+                "You track the relationship between Entergy and AEP. These two stocks have a massive correlation (0.98), "
+                "effectively moving as one. You know that deviations here are rare and usually significant. "
+                "Because the half-life is long (100 days), you are patient. You do not panic over daily noise. "
+                "You recommend trades only when the Z-score indicates a clear, statistical break in their tight relationship."
             ),
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
             tools=tools, 
-            max_rpm=5
+            max_rpm=1
         )
 
-    def monitor_run_pbw(self, tools):
+    # --- UPDATED MONITOR #2: AEP / ATO ---
+    def monitor_aep_ato(self, tools):
         return Agent(
-            role='RUN/PBW Pair Monitor',
-            goal='Monitor price deviations between Sunrun (RUN) and Invesco Clean Energy ETF (PBW).',
+            role='Electric vs. Gas Arbitrage Specialist',
+            goal='Monitor price deviations between American Electric Power (AEP) and Atmos Energy (ATO).',
             backstory=(
-                "You are a quantitative specialist in residential solar. You track Sunrun against the "
-                "sector ETF (PBW). You look for statistical mispricing where the individual stock "
-                "diverges from the sector trend. You are aggressive but data-driven."
+                "You specialize in the interplay between electric utilities and natural gas distributors. "
+                "You track AEP against ATO. This is your 'fastest' pair (Half-life ~62 days), meaning it offers "
+                "the best opportunity for medium-term trades. You look for moments where the market misprices "
+                "Gas stocks relative to Electric stocks. You are the most active trader on the team."
             ),
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
             tools=tools, 
-            max_rpm=5
+            max_rpm=1
         )
 
-    def monitor_plug_run(self, tools):
+    # --- UPDATED MONITOR #3: ETR / ATO ---
+    def monitor_etr_ato(self, tools):
         return Agent(
-            role='PLUG/RUN Pair Monitor',
-            goal='Monitor correlation and spreads between Plug Power (PLUG) and Sunrun (RUN).',
+            role='Defensive Utility Strategist',
+            goal='Monitor correlation and spreads between Entergy (ETR) and Atmos Energy (ATO).',
             backstory=(
-                "You are a volatility specialist. You track the unstable relationship between hydrogen (PLUG) "
-                "and solar (RUN). You are extremely cautious about correlation breakdowns. "
-                "You only recommend trades when correlation remains high (>0.8) despite price divergence."
+                "You focus on defensive, low-beta utility stocks. You track the spread between Entergy and Atmos. "
+                "With a correlation of 0.93, these assets provide a stable baseline for the portfolio. "
+                "You are risk-averse. You scrutinize the spread for structural breaks (like regulatory changes "
+                "in the energy sector). You provide the 'safety' check for the portfolio."
             ),
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
             tools=tools, 
-            max_rpm=5
+            max_rpm=1
         )
 
     def risk_manager(self, tools):
@@ -87,7 +94,7 @@ class TradingAgents:
             allow_delegation=False,
             llm=self.llm,
             tools=tools, 
-            max_rpm=5
+            max_rpm=1
         )
 
     def execution_agent(self, tools):
@@ -103,5 +110,5 @@ class TradingAgents:
             allow_delegation=False,
             llm=self.llm,
             tools=tools, 
-            max_rpm=5
+            max_rpm=1
         )
