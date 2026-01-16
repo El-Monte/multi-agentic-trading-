@@ -10,8 +10,8 @@ def run_vectorized_backtest(
     entry_threshold: float = 2.5, 
     exit_threshold: float = 0.5,
     lookback_window: int = 20,
-    start_date: str = "2020-01-01",
-    end_date: str = "2024-12-30"
+    start_date: str = "2023-01-02",
+    end_date: str = "2025-01-01"
 ):
     """
     Runs a vectorized backtest for a pairs trading strategy.
