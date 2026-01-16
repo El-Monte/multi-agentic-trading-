@@ -72,7 +72,7 @@ def run_vectorized_backtest(
         
     df['Position'] = signals
     
-    # Shift position by 1 day to prevent look-ahead bias [cite: 74]
+    # Shift position by 1 day to prevent look-ahead bias 
     df['Position_Lagged'] = df['Position'].shift(1)
     
     # 4. Calculate Returns
@@ -86,10 +86,10 @@ def run_vectorized_backtest(
     
     df['Net_PnL'] = df['Strategy_PnL_Daily'] - df['Transaction_Costs']
 
-    # --- 6. PERFORMANCE METRICS & BENCHMARK COMPARISON --- [cite: 63, 64]
+    # --- 6. PERFORMANCE METRICS & BENCHMARK COMPARISON --- 
     
     # Baseline Parameters
-    rf_annual = 0.015  # 1.5% Risk-Free Rate as per guidelines [cite: 68]
+    rf_annual = 0.015  # 1.5% Risk-Free Rate as per guidelines 
     rf_daily = rf_annual / 252
     
     # A. Calculate Strategy Returns
@@ -99,14 +99,14 @@ def run_vectorized_backtest(
     # Cumulative return starting at 100 [cite: 66]
     df['Strategy_Cumulative_Ret'] = (1 + df['Strategy_Daily_Ret']).cumprod() * 100 
     
-    # B. Calculate Long-Only Benchmark (50% Asset1, 50% Asset2) [cite: 14, 65]
+    # B. Calculate Long-Only Benchmark (50% Asset1, 50% Asset2)
     df['Ret_L1'] = df['Leg1'].pct_change().fillna(0)
     df['Ret_L2'] = df['Leg2'].pct_change().fillna(0)
     df['Benchmark_Daily_Ret'] = (df['Ret_L1'] + df['Ret_L2']) / 2
     # Benchmark starting at 100 [cite: 66]
     df['Benchmark_Cumulative_Ret'] = (1 + df['Benchmark_Daily_Ret']).cumprod() * 100 
     
-    # C. Required Metrics Calculation for Strategy vs Benchmark [cite: 63]
+    # C. Required Metrics Calculation for Strategy vs Benchmark 
     def calculate_metrics(returns, cumulative_equity):
         ann_ret = returns.mean() * 252 
         ann_vol = returns.std() * np.sqrt(252) 
@@ -128,12 +128,12 @@ def run_vectorized_backtest(
     strat_metrics = calculate_metrics(df['Strategy_Daily_Ret'], df['Strategy_Cumulative_Ret'])
     bench_metrics = calculate_metrics(df['Benchmark_Daily_Ret'], df['Benchmark_Cumulative_Ret'])
     
-    # D. BONUS: Market Neutrality Proof (Correlation with S&P 500) [cite: 109, 110]
+    # D. BONUS: Market Neutrality Proof (Correlation with S&P 500) 
     market_data = yf.download("^GSPC", start=start_date, end=end_date, progress=False)['Close']
     df['Market_Ret'] = market_data.pct_change().fillna(0)
     market_correlation = df['Strategy_Daily_Ret'].corr(df['Market_Ret'])
     
-    # --- 7. DISPLAY RESULTS --- [cite: 86, 103, 106]
+    # --- 7. DISPLAY RESULTS --- 
     print("\n" + "="*40)
     print("PERFORMANCE REPORT (Out-of-Sample)") 
     print("="*40)
@@ -148,7 +148,7 @@ def run_vectorized_backtest(
     print(f"BONUS - Market Correlation: {market_correlation:.4f}") 
     print("="*40)
     
-    # Plotting Equity Curves [cite: 66, 94]
+    # Plotting Equity Curves 
     
     plt.figure(figsize=(12, 6))
     plt.plot(df.index, df['Strategy_Cumulative_Ret'], label='Pairs Trading Strategy', color='green', lw=2)
@@ -168,5 +168,5 @@ if __name__ == "__main__":
     ticker_b = "RUN"
     beta = 0.872 # Note: Script now calculates dynamic beta internally
     
-    # Execute backtest (Ensure date split matches In-Sample vs Out-of-Sample requirements) [cite: 57]
+    # Execute backtest (Ensure date split matches In-Sample vs Out-of-Sample requirements) 
     results = run_vectorized_backtest(ticker_a, ticker_b, beta)
