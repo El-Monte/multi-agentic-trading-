@@ -164,8 +164,8 @@ def run_vectorized_backtest(
 
 # Main Execution Block
 if __name__ == "__main__":
-    ticker_a = "PLUG"
-    ticker_b = "RUN"
+    ticker_a = "ETR"
+    ticker_b = "AEP"
     beta = 0.872 # Note: Script now calculates dynamic beta internally
     
     # Execute backtest (Ensure date split matches In-Sample vs Out-of-Sample requirements) 
