@@ -121,12 +121,18 @@ class CointegrationAnalyzer:
         except:
             return 0.5
     
-    def analyze_pair(self, stock_a: pd.Series, stock_b: pd.Series, 
-                    ticker_a: str, ticker_b: str) -> Dict:
+    def analyze_pair(self, data: pd.DataFrame, ticker_a: str, ticker_b: str) -> Dict:
         """
         Comprehensive analysis of a potential pair.
+        Args:
+            data: DataFrame with columns [ticker_a, ticker_b]
+            ticker_a: Symbol 1
+            ticker_b: Symbol 2
         """
         try:
+            stock_a = data[ticker_a]
+            stock_b = data[ticker_b]
+
             # Correlation
             correlation = stock_a.corr(stock_b)
             
@@ -185,7 +191,7 @@ class CointegrationAnalyzer:
             }
     
     @staticmethod
-    def calculate_pair_score(result: Dict) -> float:
+    def score_pair(result: Dict) -> float:
         """
         Composite score for ranking pairs (higher = better).
         """
