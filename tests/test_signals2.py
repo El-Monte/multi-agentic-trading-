@@ -9,10 +9,10 @@ from src.tools.signal_tools import calculate_spread_and_zscore, generate_trade_s
 print("--- 1. Testing Live Data (Integration) ---")
 # Get the live Z-score first
 live_data = calculate_spread_and_zscore.run(
-    ticker_leg1="NEE", ticker_leg2="CWEN", hedge_ratio=0.948
+    ticker_leg1="ETR", ticker_leg2="AEP", hedge_ratio=0.948
 )
 z = live_data['z_score']
-print(f"Live Z-Score for NEE/CWEN: {z}")
+print(f"Live Z-Score for ETR/AEP: {z}")
 
 # Generate signal based on live data
 decision = generate_trade_signal.run(z_score=z)
