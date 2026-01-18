@@ -8,11 +8,6 @@ from src.tools.sentiment_tools import analyze_social_sentiment
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-
-# ============================================================================
-# IMPORT TEAM B'S TOOLS (Only what actually exists)
-# ============================================================================
-
 from tools.signal_tools import (
     calculate_spread_and_zscore,
     generate_trade_signal
@@ -33,43 +28,33 @@ from tools.execution_tools import (
 )
 
 
-# ============================================================================
-# TOOL ASSIGNMENTS FOR EACH AGENT
-# ============================================================================
+# TOOL
 
-# Pair Monitor Agents (NEE/CWEN, RUN/PBW, PLUG/RUN)
-# Job: Analyze pairs and generate trade signals
+# Pair Monitor Agents 
 PAIR_MONITOR_TOOLS = [
-    calculate_spread_and_zscore,  # Calculate spread Z-score
+    calculate_spread_and_zscore, 
     generate_trade_signal, 
     analyze_social_sentiment       
 ]
 
 # Risk Manager Agent
-# Job: Check portfolio-level risk constraints
 RISK_MANAGER_TOOLS = [
-    check_correlation,             # Check if positions are too correlated
-    check_volatility_regime        # Check if market volatility is too high
+    check_correlation,           
+    check_volatility_regime       
 ]
 
-# Portfolio Coordinator Agent (Manager)
-# Job: Allocate capital across multiple signals
+# Portfolio Coordinator Agent 
 PORTFOLIO_COORDINATOR_TOOLS = [
-    calculate_kelly_allocation,    # Kelly Criterion sizing
-    calculate_position_size,       # Convert to dollar amounts
-    check_correlation              # Check correlation for allocation decisions
+    calculate_kelly_allocation,    
+    calculate_position_size,       
+    check_correlation              
 ]
 
 # Execution Agent
-# Job: Execute trades with slippage modeling
 EXECUTION_AGENT_TOOLS = [
-    execute_pairs_trade            # Execute both legs of spread trade
+    execute_pairs_trade            
 ]
 
-
-# ============================================================================
-# MASTER REGISTRY
-# ============================================================================
 
 TOOLS_REGISTRY = {
     'pair_monitor': PAIR_MONITOR_TOOLS,
@@ -79,9 +64,6 @@ TOOLS_REGISTRY = {
 }
 
 
-# ============================================================================
-# HELPER FUNCTION: Get tool name (handles both regular functions and @tool decorated)
-# ============================================================================
 
 def get_tool_name(tool):
     """
@@ -93,20 +75,15 @@ def get_tool_name(tool):
     Returns:
         String name of the tool
     """
-    # Try to get name from CrewAI Tool object first
     if hasattr(tool, 'name'):
         return tool.name
-    # Fall back to function __name__
     elif hasattr(tool, '__name__'):
         return tool.__name__
-    # Last resort: convert to string
     else:
         return str(tool)
 
 
-# ============================================================================
-# VALIDATION FUNCTION
-# ============================================================================
+# Validation function
 
 def validate_tools_available() -> bool:
     """
@@ -134,27 +111,23 @@ def validate_tools_available() -> bool:
         tool_name = get_tool_name(tool)
         
         try:
-            # Check if it's a CrewAI Tool object or regular function
             if hasattr(tool, 'name'):
-                # It's a CrewAI Tool (has @tool decorator)
-                print(f"✅ {tool_name} (CrewAI Tool)")
+                print(f"{tool_name} (CrewAI Tool)")
             elif callable(tool):
-                # It's a regular Python function
-                print(f"✅ {tool_name} (Python function)")
+                print(f" {tool_name} (Python function)")
             else:
-                # Something's wrong
-                print(f"❌ {tool_name}: Not callable")
+                print(f" {tool_name}: Not callable")
                 all_valid = False
             
         except Exception as e:
-            print(f"❌ {tool_name}: Error - {e}")
+            print(f"{tool_name}: Error - {e}")
             all_valid = False
     
     print("\n" + "="*70)
-    print(f"📊 VALIDATION RESULTS")
+    print(f" VALIDATION RESULTS")
     print("="*70)
     print(f"Total tools checked: {tool_count}")
-    print(f"Status: {'✅ ALL PASSED' if all_valid else '❌ SOME FAILED'}")
+    print(f"Status: {' ALL PASSED' if all_valid else ' SOME FAILED'}")
     print("="*70 + "\n")
     
     return all_valid
@@ -163,7 +136,7 @@ def validate_tools_available() -> bool:
 def print_tool_summary():
     """Print summary of available tools for each agent."""
     print("\n" + "="*70)
-    print("📋 TOOL ASSIGNMENTS SUMMARY")
+    print(" TOOL ASSIGNMENTS SUMMARY")
     print("="*70 + "\n")
     
     for agent_type, tools in TOOLS_REGISTRY.items():
@@ -177,26 +150,21 @@ def print_tool_summary():
     print("="*70 + "\n")
 
 
-# ============================================================================
-# RUN VALIDATION
-# ============================================================================
 
 if __name__ == "__main__":
-    # Show what tools we have
     print_tool_summary()
     
-    # Validate they all work
     if validate_tools_available():
-        print("🎉 Integration ready!")
-        print("✅ All Team B tools are available for Team A agents")
-        print(f"\n📊 Tool count by agent:")
+        print(" Integration ready!")
+        print(" All Team B tools are available for Team A agents")
+        print(f"\n Tool count by agent:")
         print(f"   Pair Monitors: {len(PAIR_MONITOR_TOOLS)} tools")
         print(f"   Risk Manager: {len(RISK_MANAGER_TOOLS)} tools")
         print(f"   Portfolio Coordinator: {len(PORTFOLIO_COORDINATOR_TOOLS)} tools")
         print(f"   Execution Agent: {len(EXECUTION_AGENT_TOOLS)} tools")
         print(f"   Total: {len(PAIR_MONITOR_TOOLS + RISK_MANAGER_TOOLS + PORTFOLIO_COORDINATOR_TOOLS + EXECUTION_AGENT_TOOLS)} tools")
-        print("\n📍 Next step: Update src/agents/crew_setup.py")
+        print("\n Next step: Update src/agents/crew_setup.py")
         print("   Import: from src.integration.tools_registry import TOOLS_REGISTRY\n")
     else:
-        print("⚠️  Some tools failed validation")
-        print("🔧 Fix the issues above before proceeding\n")
+        print(" Some tools failed validation")
+        print("Fix the issues above before proceeding\n")

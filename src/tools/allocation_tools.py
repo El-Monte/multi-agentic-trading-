@@ -27,7 +27,6 @@ def calculate_position_size(total_capital: float, confidence_score: float, max_a
             return {"error": "Confidence score must be between 0.0 and 1.0"}
         
         # 2. Calculate Base Allocation
-        # Formula: Allocation = Capital * Max_Limit * Confidence
         target_pct = max_allocation_pct * confidence_score
         allocation_amount = total_capital * target_pct
         
@@ -60,15 +59,11 @@ def calculate_kelly_allocation(win_probability: float, risk_reward_ratio: float,
         Dict: The optimal allocation amount and percentage.
     """
     try:
-        # Kelly Formula: f = p - (q / b)
-        # where q = 1 - p
         q = 1 - win_probability
         kelly_pct = win_probability - (q / risk_reward_ratio)
         
-        # Kelly is notoriously volatile. Practitioners usually use "Half Kelly" (0.5 * f) for safety.
         safe_kelly_pct = kelly_pct * 0.5
         
-        # Clamp to zero if negative (don't trade)
         if safe_kelly_pct < 0:
             safe_kelly_pct = 0.0
             

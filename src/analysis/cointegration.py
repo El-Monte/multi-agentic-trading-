@@ -56,17 +56,14 @@ class CointegrationAnalyzer:
         Returns:
             Half-life in days (lower = faster mean reversion)
         """
-        # Remove NaN values
         spread_clean = spread.dropna()
         
         if len(spread_clean) < 20:
             return np.inf
         
-        # Create lagged spread
         spread_lag = spread_clean.shift(1).dropna()
         spread_diff = spread_clean.diff().dropna()
         
-        # Align the series
         common_index = spread_lag.index.intersection(spread_diff.index)
         spread_lag = spread_lag.loc[common_index]
         spread_diff = spread_diff.loc[common_index]
@@ -197,7 +194,7 @@ class CointegrationAnalyzer:
         """
         score = 0.0
         
-        # Cointegration score (0-50 points)
+        # Cointegration score 
         if result['eg_pvalue'] < 0.01:
             score += 50
         elif result['eg_pvalue'] < 0.05:
@@ -205,7 +202,7 @@ class CointegrationAnalyzer:
         elif result['eg_pvalue'] < 0.10:
             score += 20
         
-        # Mean reversion score (0-30 points)
+        # Mean reversion score
         if result['hurst'] < 0.4 and result['half_life'] < 30:
             score += 30
         elif result['hurst'] < 0.5 and result['half_life'] < 60:
@@ -213,7 +210,7 @@ class CointegrationAnalyzer:
         elif result['hurst'] < 0.6 and result['half_life'] < 120:
             score += 10
         
-        # Correlation score (0-20 points)
+        # Correlation score 
         if result['correlation'] > 0.8:
             score += 20
         elif result['correlation'] > 0.7:

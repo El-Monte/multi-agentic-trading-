@@ -31,7 +31,6 @@ from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
-# Configure plotting
 sns.set_style('whitegrid')
 plt.rcParams['figure.figsize'] = (14, 8)
 plt.rcParams['font.size'] = 11
@@ -79,7 +78,7 @@ def screen_pairs(fetcher, analyzer):
         analyzer
     )
     
-    print(f"✅ Analyzed {len(brown_results)} brown pairs")
+    print(f" Analyzed {len(brown_results)} brown pairs")
     
     if len(brown_results) > 0:
         print("\n🏆 Top 3 Brown Pairs:")
@@ -97,7 +96,7 @@ def screen_pairs(fetcher, analyzer):
         analyzer
     )
     
-    print(f"✅ Analyzed {len(green_results)} green pairs")
+    print(f" Analyzed {len(green_results)} green pairs")
     
     if len(green_results) > 0:
         print("\n🏆 Top 3 Green Pairs:")
@@ -115,23 +114,23 @@ def filter_qualified_pairs(brown_results, green_results):
     
     def is_qualified(row):
         return (
-            row['eg_pvalue'] < 0.15 and       # ← VERY RELAXED (energy sector reality)
-            row['correlation'] > 0.60 and     # ← Keep this
-            row['half_life'] < 150 and        # ← RELAXED (energy mean-reverts slowly)
-            row['half_life'] > 5 and          # ← Must be reasonable
-            row['hurst'] < 0.70               # ← RELAXED (some trending is OK)
+            row['eg_pvalue'] < 0.15 and       
+            row['correlation'] > 0.60 and     
+            row['half_life'] < 150 and       
+            row['half_life'] > 5 and        
+            row['hurst'] < 0.70            
         )
     
     brown_qualified = brown_results[brown_results.apply(is_qualified, axis=1)] if len(brown_results) > 0 else pd.DataFrame()
     green_qualified = green_results[green_results.apply(is_qualified, axis=1)] if len(green_results) > 0 else pd.DataFrame()
     
-    print(f"\n📋 Qualification Criteria (RELAXED FOR ENERGY SECTOR):")
+    print(f"\n Qualification Criteria (RELAXED FOR ENERGY SECTOR):")
     print(f"   ✓ Engle-Granger p-value < 0.15")
     print(f"   ✓ Correlation > 0.60")
     print(f"   ✓ Half-life: 5-150 days")
     print(f"   ✓ Hurst exponent < 0.70")
     
-    print(f"\n✅ Results:")
+    print(f"\n Results:")
     print(f"   Brown pairs qualified: {len(brown_qualified)}/{len(brown_results)}")
     print(f"   Green pairs qualified: {len(green_qualified)}/{len(green_results)}")
     
@@ -216,7 +215,7 @@ def save_results(all_qualified, top_3, brown_results, green_results, fetcher, an
         f.write("="*70 + "\n\n")
         
         if len(top_3) == 0:
-            f.write("⚠️  NO QUALIFIED PAIRS FOUND\n\n")
+            f.write(" NO QUALIFIED PAIRS FOUND\n\n")
             f.write("Consider relaxing criteria:\n")
             f.write("- Correlation > 0.60 (instead of 0.65)\n")
             f.write("- Half-life < 75 days (instead of 60)\n")
@@ -228,26 +227,26 @@ def save_results(all_qualified, top_3, brown_results, green_results, fetcher, an
                 f.write("-" * 70 + "\n")
                 f.write(f"Overall Score:        {row['score']:.1f}/100\n\n")
                 
-                f.write(f"📊 Statistical Measures:\n")
+                f.write(f" Statistical Measures:\n")
                 f.write(f"   Correlation:       {row['correlation']:.4f}\n")
                 f.write(f"   Hedge Ratio:       {row['hedge_ratio']:.4f}\n\n")
                 
-                f.write(f"🔗 Cointegration Test:\n")
+                f.write(f"Cointegration Test:\n")
                 f.write(f"   EG p-value:        {row['eg_pvalue']:.6f} {'✓ PASS' if row['eg_pvalue'] < 0.05 else '✗ FAIL'}\n")
                 f.write(f"   Cointegrated:      {'Yes' if row['cointegrated'] else 'No'}\n\n")
                 
-                f.write(f"📈 Mean Reversion:\n")
+                f.write(f" Mean Reversion:\n")
                 f.write(f"   Half-life:         {row['half_life']:.2f} days\n")
                 f.write(f"   Hurst Exponent:    {row['hurst']:.4f} {'(mean-reverting)' if row['hurst'] < 0.5 else '(trending)'}\n\n")
                 
-                f.write(f"📉 Spread Statistics:\n")
+                f.write(f"Spread Statistics:\n")
                 f.write(f"   ADF p-value:       {row['adf_pvalue']:.6f} {'✓ Stationary' if row['adf_pvalue'] < 0.05 else '✗ Non-stationary'}\n")
                 f.write(f"   Spread Mean:       {row['spread_mean']:.4f}\n")
                 f.write(f"   Spread Std Dev:    {row['spread_std']:.4f}\n")
                 
                 f.write("\n" + "="*70 + "\n\n")
             
-            f.write("\n📝 TRADING LOGIC:\n")
+            f.write("\n TRADING LOGIC:\n")
             f.write("-" * 70 + "\n")
             f.write("When Z-score > 2.5:  Short the spread (short stock A, long stock B)\n")
             f.write("When Z-score < -2.5: Long the spread (long stock A, short stock B)\n")
@@ -260,9 +259,8 @@ def save_results(all_qualified, top_3, brown_results, green_results, fetcher, an
             f.write("- High correlation = stocks move together (reduces basis risk)\n")
             f.write("- Low EG p-value = strong cointegration (stable long-term relationship)\n")
     
-    print(f"✅ Saved: {txt_path}")
+    print(f" Saved: {txt_path}")
     
-    # 4. Save as YAML config for next steps
     if len(top_3) > 0:
         yaml_path = 'data/processed/selected_pairs_config.yaml'
         config = {
@@ -291,19 +289,18 @@ def save_results(all_qualified, top_3, brown_results, green_results, fetcher, an
         with open(yaml_path, 'w', encoding='utf-8') as f:
             yaml.dump(config, f, default_flow_style=False, sort_keys=False)
         
-        print(f"✅ Saved: {yaml_path}")
+        print(f" Saved: {yaml_path}")
     
-    # 5. Generate visualizations
-    print(f"\n📊 Generating visualizations...")
+    print(f"\n Generating visualizations...")
     viz_count = 0
     for i, row in top_3.iterrows():
         ticker_a, ticker_b = row['pair'].split('/')
         output_path = f'reports/figures/pair_{i+1}_{ticker_a}_{ticker_b}.png'
         if plot_pair(ticker_a, ticker_b, fetcher, analyzer, output_path):
-            print(f"   ✅ Created: {output_path}")
+            print(f"   Created: {output_path}")
             viz_count += 1
     
-    print(f"\n✅ Generated {viz_count} visualization(s)")
+    print(f"\n Generated {viz_count} visualization(s)")
 
 
 def print_summary(brown_results, green_results, all_qualified, top_3):
@@ -314,17 +311,17 @@ def print_summary(brown_results, green_results, all_qualified, top_3):
     total_qualified = len(all_qualified)
     
     summary = f"""
-📈 Screening Results:
+   Screening Results:
    Total pairs tested:     {total_tested}
    Qualified pairs:        {total_qualified}
    Success rate:           {100*total_qualified/max(total_tested, 1):.1f}%
    
-🏆 Top 3 Selected Pairs:"""
+   Top 3 Selected Pairs:"""
     
     print(summary)
     
     if len(top_3) == 0:
-        print("\n   ⚠️  NO PAIRS MET QUALIFICATION CRITERIA")
+        print("\n   NO PAIRS MET QUALIFICATION CRITERIA")
         print("\n   Suggestions:")
         print("   - Check if data downloaded correctly")
         print("   - Relax qualification thresholds")
@@ -337,9 +334,9 @@ def print_summary(brown_results, green_results, all_qualified, top_3):
             print(f"      Half-life: {row['half_life']:.1f} days")
     
     print("\n" + "="*70)
-    print("✅ DAY 1 COMPLETE!")
+    print(" DAY 1 COMPLETE!")
     print("="*70)
-    print("\n📁 Output Files:")
+    print("\n Output Files:")
     print("   - data/processed/top_3_pairs.txt         (Read this first!)")
     print("   - data/processed/all_pairs_results.csv   (Full data)")
     print("   - data/processed/qualified_pairs.csv     (Filtered pairs)")
@@ -353,23 +350,19 @@ def main():
     print_header("🤖 MULTI-AGENT PAIRS TRADING - DAY 1", "=")
     print("Pair Discovery & Statistical Validation\n")
     
-    # Setup
     setup_directories()
     
-    # Initialize
-    print("🔧 Initializing components...")
+    print(" Initializing components...")
     fetcher = DataFetcher(start_date="2015-01-01", end_date="2023-01-01")
     analyzer = CointegrationAnalyzer()
     print(f"   Stock universe: {len(ENERGY_STOCKS['brown'])} brown + {len(ENERGY_STOCKS['green'])} green")
     
-    # Screen pairs
     brown_results, green_results = screen_pairs(fetcher, analyzer)
     
-    # Filter qualified
     brown_qualified, green_qualified = filter_qualified_pairs(brown_results, green_results)
     
     # Select top 3
-    print_header("🎯 SELECTING TOP 3 PAIRS")
+    print_header(" SELECTING TOP 3 PAIRS")
     all_qualified = pd.concat([brown_qualified, green_qualified]).sort_values('score', ascending=False)
     top_3 = all_qualified.head(3)
     
@@ -379,10 +372,7 @@ def main():
             print(f"   {i+1}. {row['pair']:<12} | Score: {row['score']:>5.1f} | "
                   f"Corr: {row['correlation']:.3f} | Half-life: {row['half_life']:>5.1f}d")
     
-    # Save everything
     save_results(all_qualified, top_3, brown_results, green_results, fetcher, analyzer)
-    
-    # Print summary
     print_summary(brown_results, green_results, all_qualified, top_3)
 
 

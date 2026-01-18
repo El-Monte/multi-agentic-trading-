@@ -28,7 +28,6 @@ def check_risk_limits(current_positions_value: float, new_trade_value: float, to
              
         new_leverage = projected_exposure / total_capital
         
-        # 3. Check Limit
         if new_leverage > max_leverage:
             return {
                 "allowed": False,
@@ -67,30 +66,24 @@ def check_correlation(new_ticker: str, existing_tickers: List[str], correlation_
     try:
         # 1. Fetch Data for ALL tickers (New + Existing)
         all_tickers = existing_tickers + [new_ticker]
-        # Join list into string for yfinance (e.g., "NEE CWEN RUN")
         tickers_str = " ".join(all_tickers)
         
-        # Download 3 months of data
         data = yf.download(tickers_str, period="6mo", progress=False, auto_adjust=True)['Close']
         
         if data.empty:
              return {"allowed": False, "reason": "Failed to fetch price data."}
 
         # 2. Calculate Daily Returns (Percentage Change)
-        # We look at correlation of RETURNS, not Prices (Prices are non-stationary)
         returns = data.pct_change().dropna()
         
         # 3. Check Correlation against the New Ticker
-        # We only care about how 'new_ticker' correlates with the others
         corr_matrix = returns.corr()
         
         max_corr = -1.0
         conflict_ticker = None
         
-        # Iterate through existing tickers to find the worst match
         for ticker in existing_tickers:
             if ticker in corr_matrix.columns and new_ticker in corr_matrix.columns:
-                # Get correlation value
                 corr_val = corr_matrix.loc[new_ticker, ticker]
                 
                 if corr_val > max_corr:
@@ -155,7 +148,7 @@ def check_volatility_regime(
         tickers = f"{ticker1} {ticker2}"
         data = yf.download(
             tickers, 
-            period="1y",          # fetch enough history
+            period="1y", 
             progress=False,
             auto_adjust=True
         )["Close"]
@@ -163,7 +156,6 @@ def check_volatility_regime(
         if data.empty:
             return {"error": "Unable to fetch prices for volatility regime."}
 
-        # Spread-based volatility is more accurate
         spread = data[ticker1] - data[ticker2]
         spread_returns = spread.pct_change().dropna()
 
@@ -173,11 +165,9 @@ def check_volatility_regime(
         if pd.isna(short_vol) or pd.isna(long_vol):
             return {"error": "Not enough data for volatility calculation."}
 
-        # Default state
         regime = "NORMAL"
         allowed = True
 
-        # High-volatility regime detection
         if short_vol > threshold_ratio * long_vol:
             regime = "HIGH_VOL"
             allowed = False

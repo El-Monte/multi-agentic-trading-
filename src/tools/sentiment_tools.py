@@ -6,8 +6,6 @@ from crewai.tools import tool
 from typing import Dict
 from pathlib import Path
 
-# GLOBAL CACHE
-# We load the model once to avoid reloading 400MB on every function call
 SENTIMENT_PIPELINE = None
 
 def get_sentiment_pipeline():
@@ -28,15 +26,10 @@ def analyze_social_sentiment(ticker: str) -> Dict:
         ticker (str): The stock ticker (e.g., "ETR", "AEP", "ATO").
     """
     try:
-        # =========================================================
-        # 1. ROBUST PATH FINDING
-        # =========================================================
-        # Finds the project root relative to this file
         project_root = Path(__file__).resolve().parents[2] 
         file_path = project_root / "data" / "processed" / "reddit_raw.csv"
         
-        # Debugging print to help you verify data location
-        print(f"\n🔍 Looking for sentiment data at: {file_path}")
+        print(f"\n Looking for sentiment data at: {file_path}")
         
         if not file_path.exists():
             return {
@@ -47,9 +40,7 @@ def analyze_social_sentiment(ticker: str) -> Dict:
             
         df = pd.read_csv(file_path)
         
-        # 2. Filter for the Ticker
-        # The scraper saves the data with the Ticker in 'target_company' column.
-        # We perform a case-insensitive match.
+        # Filter for the Ticker
         ticker_upper = ticker.upper().strip()
         
         relevant_posts = df[
@@ -65,36 +56,30 @@ def analyze_social_sentiment(ticker: str) -> Dict:
                 "note": f"No Reddit posts found for {ticker} in the database."
             }
 
-        # 3. OPTIMIZATION: Limit to top 10 posts
-        # FinBERT is slow on CPU. We limit the batch size to keep the Agent responsive.
         relevant_posts = relevant_posts.head(10)
         
-        # 4. RUN AI INFERENCE 🧠
         nlp = get_sentiment_pipeline()
         
         texts = []
         for _, row in relevant_posts.iterrows():
-            # Combine title + start of body text
             text = str(row['title'])
             if 'selftext' in row and pd.notna(row['selftext']):
                 text += " " + str(row['selftext'])
-            # Truncate to 512 tokens for BERT safety
             texts.append(text[:512])
             
         results = nlp(texts)
         
-        # 5. Calculate Weighted Score
-        # FinBERT labels: positive, negative, neutral
+        # Calculate Weighted Score
         score_map = {'positive': 1, 'negative': -1, 'neutral': 0}
         total_score = 0
         
         for res in results:
             val = score_map.get(res['label'], 0)
-            total_score += val * res['score'] # Weight by the model's confidence
+            total_score += val * res['score'] 
             
         avg_score = total_score / len(results)
         
-        # 6. Result Interpretation
+        # Result Interpretation
         sentiment_label = "NEUTRAL"
         if avg_score > 0.15: sentiment_label = "BULLISH"
         if avg_score < -0.15: sentiment_label = "BEARISH"

@@ -32,18 +32,15 @@ def run_vectorized_backtest(
         print(f"Error downloading data: {e}")
         return None
     
-    # Handle single ticker issues or missing columns
     if ticker1 not in data.columns or ticker2 not in data.columns:
         print("Error: Tickers not found in data.")
         return None
 
-    # Rename columns for clarity
     df = pd.DataFrame()
     df['Leg1'] = data[ticker1]
     df['Leg2'] = data[ticker2]
     
     # 2. Calculate Rolling Beta (Dynamic Hedge Ratio)
-    # Using 60-day window as per our tool logic
     window_beta = 60
     rolling_cov = df['Leg1'].rolling(window=window_beta).cov(df['Leg2'])
     rolling_var = df['Leg2'].rolling(window=window_beta).var()
@@ -58,7 +55,7 @@ def run_vectorized_backtest(
     df['Spread_Std'] = df['Spread'].rolling(window=lookback_window).std()
     df['Z_Score'] = (df['Spread'] - df['Spread_Mean']) / df['Spread_Std']
     
-    # 3. Generate Signals (Vectorized Logic)
+    # 3. Generate Signals 
     df['Signal'] = 0 
     
     position = 0
@@ -70,13 +67,11 @@ def run_vectorized_backtest(
             continue
             
         if position == 0:
-            # Entry Logic
             if z > entry_threshold:
-                position = -1 # Short Spread
+                position = -1 
             elif z < -entry_threshold:
-                position = 1  # Long Spread
+                position = 1 
         else:
-            # Exit Logic
             if abs(z) < exit_threshold:
                 position = 0
                 
@@ -84,11 +79,9 @@ def run_vectorized_backtest(
         
     df['Position'] = signals
     
-    # Shift position by 1 day to prevent look-ahead bias 
     df['Position_Lagged'] = df['Position'].shift(1)
     
     # 4. Calculate Returns
-    # Spread PnL approximation
     df['Spread_Change'] = df['Spread'].diff()
     df['Strategy_PnL_Daily'] = df['Position_Lagged'] * df['Spread_Change']
     
@@ -102,9 +95,9 @@ def run_vectorized_backtest(
     # --- 6. PERFORMANCE METRICS & BENCHMARK COMPARISON --- 
     
     # Baseline Parameters
-    rf_annual = 0.015  # 1.5% Risk-Free Rate
+    rf_annual = 0.015  
     
-    # A. Calculate Strategy Returns (Normalized to % for Sharpe)
+    # A. Calculate Strategy Returns 
     capital = 100000 
     # Determine trade size (20% of capital)
     avg_price = (df['Leg1'] + df['Leg2']).mean()
@@ -119,7 +112,6 @@ def run_vectorized_backtest(
     df['Benchmark_Daily_Ret'] = (0.5 * df['Ret_L1']) + (0.5 * df['Ret_L2'])
     df['Benchmark_Cumulative_Ret'] = (1 + df['Benchmark_Daily_Ret']).cumprod() * 100 
     
-    # Filter for Out-of-Sample Period
     oos_df = df[df.index >= split_date].copy()
     
     # C. Metric Calculation Function
@@ -151,7 +143,7 @@ def run_vectorized_backtest(
     strat_metrics = calculate_metrics(oos_df['Strategy_Daily_Ret'], oos_df['Strategy_Cumulative_Ret'])
     bench_metrics = calculate_metrics(oos_df['Benchmark_Daily_Ret'], oos_df['Benchmark_Cumulative_Ret'])
     
-    # --- 7. DISPLAY RESULTS --- 
+
     print("\n" + "="*60)
     print(f"📈 PERFORMANCE REPORT (Out-of-Sample: {split_date} to {end_date})") 
     print(f"   Pair: {ticker1} / {ticker2}")
@@ -177,7 +169,6 @@ def run_vectorized_backtest(
     plt.legend()
     plt.grid(True, alpha=0.3)
     
-    # Save Plot
     if not os.path.exists("results"):
         os.makedirs("results")
     plt.savefig("results/equity_curve_oos.png")
@@ -186,6 +177,5 @@ def run_vectorized_backtest(
 
     return df
 
-# Main Execution Block
 if __name__ == "__main__":
     run_vectorized_backtest("ETR", "AEP", entry_threshold=2.0)

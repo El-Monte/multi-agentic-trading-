@@ -10,7 +10,6 @@ def calculate_spread_and_zscore(ticker_leg1: str, ticker_leg2: str, lookback_win
     Calculates the current spread and Z-score using a dynamic Rolling Hedge Ratio.
     """
     try:
-        # Fetch 6 months to have enough data for the 60-day rolling beta
         data = yf.download(f"{ticker_leg1} {ticker_leg2}", period="6mo", progress=False)['Close']
         if data.empty: return {"error": "No data"}
         
@@ -22,7 +21,7 @@ def calculate_spread_and_zscore(ticker_leg1: str, ticker_leg2: str, lookback_win
         rolling_var = df[ticker_leg2].rolling(window=window_beta).var()
         df['Dynamic_Beta'] = rolling_cov / rolling_var
         
-        # 2. Calculate Spread using YESTERDAY'S Beta to avoid leakage
+        # 2. Spread using YESTERDAY'S Beta to avoid leakage
         df['Spread'] = df[ticker_leg1] - (df['Dynamic_Beta'].shift(1) * df[ticker_leg2])
         
         # 3. Z-Score logic

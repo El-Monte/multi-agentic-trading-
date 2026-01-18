@@ -2,7 +2,6 @@ import os
 import sys
 from crewai import Crew, Process, LLM
 
-# Ensure we can import from the root directory
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from src.agents.trading_agents import TradingAgents
@@ -143,7 +142,6 @@ if __name__ == "__main__":
     if not os.getenv("GOOGLE_API_KEY"):
         print("❌ ERROR: GOOGLE_API_KEY not found. Please export it.")
     else:
-        # Context for the agents (They fetch real data via tools)
         context = {
             "date": "2024-05-24",
             "market_status": "OPEN",

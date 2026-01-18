@@ -35,7 +35,6 @@ class DataFetcher:
             if data.empty or len(data) < 100:
                 return pd.Series(dtype=float)
             
-            # Return Close price as Series with proper index
             return data['Close']
             
         except Exception as e:
@@ -56,20 +55,16 @@ class DataFetcher:
         stock_a = self.fetch_stock(ticker_a)
         stock_b = self.fetch_stock(ticker_b)
         
-        # Check if we got valid data
         if stock_a.empty or stock_b.empty:
             return pd.DataFrame()
         
-        # Combine and drop NaN (align trading days)
         df = pd.DataFrame({
             ticker_a: stock_a,
             ticker_b: stock_b
         })
         
-        # Drop rows with any NaN values
         df = df.dropna()
         
-        # Ensure we have enough data
         if len(df) < 100:
             return pd.DataFrame()
         
@@ -89,7 +84,6 @@ class DataFetcher:
             data = yf.download(tickers, start=self.start_date, end=self.end_date,
                              auto_adjust=True, progress=False)['Close']
             
-            # Handle single ticker case
             if isinstance(data, pd.Series):
                 data = data.to_frame(name=tickers[0])
             

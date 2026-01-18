@@ -24,7 +24,6 @@ def execute_pairs_trade(
         slippage_bps (int, optional): Basis points of slippage. Defaults to 10.
     """
     try:
-        # Defaults for safety
         if hedge_ratio is None: hedge_ratio = 1.0
         if slippage_bps is None: slippage_bps = 10
 
@@ -32,11 +31,8 @@ def execute_pairs_trade(
         tickers = f"{ticker_leg1} {ticker_leg2}"
         data = yf.download(tickers, period="1d", progress=False)['Close']
         
-        # Handle data fetching issues
         if data.empty:
             return {"error": f"Failed to fetch market prices for {tickers}"}
-            
-        # Handle columns extraction safely
         try:
             p1 = float(data[ticker_leg1].iloc[-1])
             p2 = float(data[ticker_leg2].iloc[-1])
@@ -44,12 +40,9 @@ def execute_pairs_trade(
              return {"error": f"Tickers {ticker_leg1} or {ticker_leg2} not found in yfinance response."}
         
         # 2. Calculate Slippage Factor
-        # 10 bps = 0.0010
         slip_pct = slippage_bps / 10000.0
         
-        # 3. Determine Side (Long vs Short)
-        # Standard approach: Dollar Neutral (50% capital to each leg)
-        # Advanced approach would use hedge_ratio to weight capital, but 50/50 is standard for this demo.
+        # 3. Long vs Short
         allocation_leg1 = total_value / 2
         allocation_leg2 = total_value / 2
         
@@ -64,10 +57,10 @@ def execute_pairs_trade(
 
         if "LONG" in action_upper or "OPEN_LONG" in action_upper:
             # Long Spread = Buy Leg 1, Sell Leg 2
-            exec_p1 = p1 * (1 + slip_pct) # Pay more (Ask)
+            exec_p1 = p1 * (1 + slip_pct) 
             shares1 = allocation_leg1 / exec_p1
             
-            exec_p2 = p2 * (1 - slip_pct) # Receive less (Bid)
+            exec_p2 = p2 * (1 - slip_pct) 
             shares2 = allocation_leg2 / exec_p2
             
             leg1_side = "BUY"
@@ -75,10 +68,10 @@ def execute_pairs_trade(
             
         elif "SHORT" in action_upper or "OPEN_SHORT" in action_upper:
             # Short Spread = Sell Leg 1, Buy Leg 2
-            exec_p1 = p1 * (1 - slip_pct) # Receive less
+            exec_p1 = p1 * (1 - slip_pct) 
             shares1 = allocation_leg1 / exec_p1
             
-            exec_p2 = p2 * (1 + slip_pct) # Pay more
+            exec_p2 = p2 * (1 + slip_pct) 
             shares2 = allocation_leg2 / exec_p2
             
             leg1_side = "SELL"
